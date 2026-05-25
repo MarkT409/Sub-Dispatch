@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-navy-950: #0a0f1a;
+  --color-navy-900: #0f1729;
+  --color-navy-800: #152238;
+  --color-amber-400: #f5b942;
+  --color-amber-500: #e5a020;
+  --color-violet-400: #a78bfa;
+  --color-violet-500: #8b6fd4;
+  --color-bg-base: var(--bg-base);
+  --color-bg-raised: var(--bg-raised);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-hover: var(--bg-card-hover);
+  --color-bg-input: var(--bg-input);
+  --color-bg-form: var(--bg-form);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Light mode (default) */
+:root {
+  --bg-base: #f4f7fb;
+  --bg-raised: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-input: #ffffff;
+  --bg-form: #eef2f7;
+  --text-primary: #0a0f1a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border-subtle: rgb(10 15 26 / 0.06);
+  --border-default: rgb(10 15 26 / 0.1);
+  --border-strong: rgb(10 15 26 / 0.14);
+  --grid-line: rgba(229, 160, 32, 0.12);
+  --hero-glow: rgba(229, 160, 32, 0.18);
+}
+
+/* Dark mode — class on <html> */
+html.dark {
+  --bg-base: #0a0f1a;
+  --bg-raised: #0f1729;
+  --bg-card: #152238;
+  --bg-card-hover: #152238;
+  --bg-input: #0f1729;
+  --bg-form: #0a0f1a;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-subtle: rgb(255 255 255 / 0.05);
+  --border-default: rgb(255 255 255 / 0.08);
+  --border-strong: rgb(255 255 255 / 0.1);
+  --grid-line: rgba(245, 185, 66, 0.03);
+  --hero-glow: rgba(229, 160, 32, 0.1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.hero-glow {
+  background-color: var(--hero-glow);
+}
