@@ -10,6 +10,9 @@
   --color-amber-500: #e5a020;
   --color-violet-400: #a78bfa;
   --color-violet-500: #8b6fd4;
+  --color-brand-purple: #5c2d6f;
+  --color-brand-orange: #f5a623;
+  --color-brand-green: #7a8b3a;
   --color-bg-base: var(--bg-base);
   --color-bg-raised: var(--bg-raised);
   --color-bg-card: var(--bg-card);

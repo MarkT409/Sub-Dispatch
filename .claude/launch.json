@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lantana-dev",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["/tmp/lantana-dev.sh"],
+      "port": 3000
+    }
+  ]
+}

@@ -5,17 +5,18 @@ export function About() {
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <div>
             <h2 className="font-display text-3xl font-bold tracking-tight text-text-primary md:text-4xl">
-              Built for electrical contractors
+              Powering homes, businesses & job sites
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-text-secondary">
-              Lantana exists to support the contractors who win the jobs. When you land a
-              large commercial or multi-family project, you need reliable labor for rough-in
-              and trim phases—not another layer of management headaches.
+              Lantana Electric delivers residential, commercial, and underground electrical
+              work—with skilled crews for rough-in, trim, and full-scope installation. We
+              partner with electrical contractors who need dependable labor, and with
+              builders who need a team that shows up ready.
             </p>
             <p className="mt-4 text-lg leading-relaxed text-text-secondary">
-              Our installers work as an extension of your team: following your foreman,
-              your drawings, and your quality standards. You keep the contract and the
-              customer relationship; we deliver the hands on site.
+              From tract homes and custom builds to service racks and finish-out, our
+              installers follow your specs, your schedule, and your standards—so projects
+              move forward without delays or surprises.
             </p>
           </div>
 
@@ -27,7 +28,7 @@ export function About() {
               {[
                 {
                   step: "01",
-                  text: "You scope the phase—rough, trim, or both—and share job requirements.",
+                  text: "You scope the job—new build, underground, rough, trim, or full package.",
                 },
                 {
                   step: "02",
@@ -35,11 +36,11 @@ export function About() {
                 },
                 {
                   step: "03",
-                  text: "Installers report to your site leadership and complete work to spec.",
+                  text: "Installers report to your leadership and complete work to spec.",
                 },
                 {
                   step: "04",
-                  text: "You move to the next phase with labor off your payroll, not off your standards.",
+                  text: "You move to the next phase with quality work and clear communication.",
                 },
               ].map((item) => (
                 <li key={item.step} className="flex gap-4">

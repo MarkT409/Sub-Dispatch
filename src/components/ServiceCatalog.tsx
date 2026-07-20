@@ -17,8 +17,8 @@ const catalog = [
   {
     title: "Underground Electrical",
     image:
-      "https://images.unsplash.com/photo-1581094271901-ef2a9c4e2989?w=800&q=80&fit=crop",
-    alt: "Electrical conduit in an underground trench",
+      "https://images.unsplash.com/photo-1628645419184-26a1f2757340?w=800&q=80&fit=crop",
+    alt: "Yellow excavator digging at a construction site",
     items: [
       "Underground Service",
       "Trenching & Conduit",
@@ -30,8 +30,8 @@ const catalog = [
   {
     title: "Service Rack Builds",
     image:
-      "https://images.unsplash.com/photo-1473341303090-9d0f7a0a2cd1?w=800&q=80&fit=crop",
-    alt: "Electrical utility service equipment outdoors",
+      "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=800&q=80&fit=crop",
+    alt: "Electrician working inside an electrical service panel",
     items: [
       "Temporary Power Poles",
       "Permanent Service Racks",
@@ -56,8 +56,8 @@ const catalog = [
   {
     title: "EV Chargers",
     image:
-      "https://images.unsplash.com/photo-1593941707874-ef6529f4b4e3?w=800&q=80&fit=crop",
-    alt: "Electric vehicle wall charger mounted in a garage",
+      "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80&fit=crop",
+    alt: "Electric vehicle charging cable plugged into car",
     items: [
       "Level 2 Charger Installation",
       "Tesla Wall Connectors",
@@ -70,7 +70,7 @@ const catalog = [
     title: "Generators",
     image:
       "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&fit=crop",
-    alt: "Backup generator equipment outdoors",
+    alt: "Technician servicing generator and power equipment",
     items: [
       "Whole Home Generators",
       "Transfer Switches",
@@ -82,8 +82,8 @@ const catalog = [
   {
     title: "Remodels & Upgrades",
     image:
-      "https://images.unsplash.com/photo-1556912172-45b0f85f0d0e?w=800&q=80&fit=crop",
-    alt: "Modern kitchen remodel with updated lighting",
+      "https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=800&q=80&fit=crop",
+    alt: "Elegant dark farmhouse kitchen with copper accents",
     items: [
       "Kitchen Remodels",
       "Bathroom Remodels",
@@ -95,8 +95,8 @@ const catalog = [
   {
     title: "Maintenance & Service",
     image:
-      "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=800&q=80&fit=crop",
-    alt: "Electrician working inside an electrical panel",
+      "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=80&fit=crop",
+    alt: "Electrician performing maintenance and repair work",
     items: [
       "Electrical Troubleshooting",
       "Repairs",
@@ -130,6 +130,7 @@ export function ServiceCatalog() {
                 src={service.image}
                 alt={service.alt}
                 fill
+                unoptimized
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
               />

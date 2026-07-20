@@ -17,28 +17,26 @@ export function Contact() {
 
               <div className="mt-10 space-y-4 text-text-secondary">
                 <p>
-                  <span className="block text-sm text-text-muted">Email</span>
+                  <span className="block text-sm text-text-muted">Phone</span>
                   <a
-                    href="mailto:info@lantana.com"
+                    href="tel:+18323991024"
                     className="text-text-primary transition-colors hover:text-amber-600 dark:hover:text-amber-400"
                   >
-                    info@lantana.com
+                    (832) 399-1024
                   </a>
                 </p>
                 <p>
-                  <span className="block text-sm text-text-muted">Phone</span>
+                  <span className="block text-sm text-text-muted">Email</span>
                   <a
-                    href="tel:+10000000000"
+                    href="mailto:info@lantanaelectric.com"
                     className="text-text-primary transition-colors hover:text-amber-600 dark:hover:text-amber-400"
                   >
-                    (000) 000-0000
+                    info@lantanaelectric.com
                   </a>
                 </p>
-                <p className="text-sm text-text-muted">
-                  Update contact details in{" "}
-                  <code className="rounded bg-bg-base px-1.5 py-0.5 text-text-secondary">
-                    src/components/Contact.tsx
-                  </code>
+                <p>
+                  <span className="block text-sm text-text-muted">Service area</span>
+                  <span className="text-text-primary">Central Texas</span>
                 </p>
               </div>
             </div>
@@ -94,7 +92,7 @@ export function Contact() {
                 Send inquiry
               </button>
               <p className="text-center text-xs text-text-muted">
-                Form is front-end only. Wire to your email service or API when ready.
+                We&apos;ll respond within one business day.
               </p>
             </form>
           </div>

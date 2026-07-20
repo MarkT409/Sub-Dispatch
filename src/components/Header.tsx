@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Logo } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
 const navLinks = [
@@ -16,12 +17,8 @@ export function Header() {
   return (
     <header className="fixed top-0 right-0 left-0 z-50 border-b border-border-subtle bg-bg-base/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <a
-          href="#"
-          className="font-display text-xl font-semibold tracking-tight text-text-primary"
-        >
-          Lantana
-          <span className="ml-1 text-amber-500 dark:text-amber-400">.</span>
+        <a href="#" className="shrink-0 transition-opacity hover:opacity-90" aria-label="Lantana Electric — Home">
+          <Logo />
         </a>
 
         <div className="flex items-center gap-3 md:gap-8">
@@ -35,6 +32,12 @@ export function Header() {
                 {link.label}
               </a>
             ))}
+            <a
+              href="/join"
+              className="text-sm text-text-secondary transition-colors hover:text-amber-500 dark:hover:text-amber-400"
+            >
+              Join our crew
+            </a>
             <a
               href="#contact"
               className="rounded-full bg-amber-500 px-5 py-2 text-sm font-medium text-navy-950 transition-colors hover:bg-amber-400"
@@ -78,6 +81,13 @@ export function Header() {
                 {link.label}
               </a>
             ))}
+            <a
+              href="/join"
+              className="text-text-secondary hover:text-amber-500 dark:hover:text-amber-400"
+              onClick={() => setMenuOpen(false)}
+            >
+              Join our crew
+            </a>
             <a
               href="#contact"
               className="rounded-full bg-amber-500 px-5 py-2.5 text-center font-medium text-navy-950"

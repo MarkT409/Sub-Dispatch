@@ -15,9 +15,9 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Lantana | Electrical Subcontractor — Roughs & Trims",
+  title: "Lantana Electric LLC | Residential & Commercial Electrical",
   description:
-    "Lantana provides skilled electrical installation crews for rough-in and trim work. Trusted subcontractor partner for commercial and residential electrical contractors.",
+    "Lantana Electric provides residential, commercial, and underground electrical services—rough-in, trim, builder power, and subcontractor crews across Central Texas.",
   keywords: [
     "electrical subcontractor",
     "rough-in electrical",
