@@ -4,6 +4,8 @@ import { useState, type FormEvent } from "react";
 
 type FormStatus = "idle" | "sending" | "success" | "error";
 
+const CONTACT_EMAIL = "info@lantanaelectric.com";
+
 export function Contact() {
   const [status, setStatus] = useState<FormStatus>("idle");
 
@@ -13,20 +15,34 @@ export function Contact() {
 
     const form = event.currentTarget;
     const formData = new FormData(form);
-    const body = new URLSearchParams();
-    formData.forEach((value, key) => {
-      body.append(key, String(value));
-    });
+    const name = String(formData.get("name") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const message = String(formData.get("message") ?? "").trim();
 
     try {
-      const response = await fetch("/__forms.html", {
+      const response = await fetch(`https://formsubmit.co/ajax/${CONTACT_EMAIL}`, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          message,
+          _subject: `Lantana website inquiry from ${name}`,
+          _replyto: email,
+          _template: "table",
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error("Form submission failed");
+      const result = (await response.json().catch(() => null)) as {
+        success?: string | boolean;
+        message?: string;
+      } | null;
+
+      if (!response.ok || result?.success === "false" || result?.success === false) {
+        throw new Error(result?.message ?? "Form submission failed");
       }
 
       form.reset();
@@ -63,10 +79,10 @@ export function Contact() {
                 <p>
                   <span className="block text-sm text-text-muted">Email</span>
                   <a
-                    href="mailto:info@lantanaelectric.com"
+                    href={`mailto:${CONTACT_EMAIL}`}
                     className="text-text-primary transition-colors hover:text-amber-600 dark:hover:text-amber-400"
                   >
-                    info@lantanaelectric.com
+                    {CONTACT_EMAIL}
                   </a>
                 </p>
                 <p>
@@ -77,20 +93,9 @@ export function Contact() {
             </div>
 
             <form
-              name="contact"
-              method="POST"
-              data-netlify="true"
-              data-netlify-honeypot="bot-field"
               className="flex flex-col justify-center gap-5 border-t border-border-default bg-bg-form p-8 md:p-12 lg:border-t-0 lg:border-l"
               onSubmit={handleSubmit}
             >
-              <input type="hidden" name="form-name" value="contact" />
-              <p className="hidden" aria-hidden>
-                <label>
-                  Don’t fill this out: <input name="bot-field" tabIndex={-1} autoComplete="off" />
-                </label>
-              </p>
-
               <div>
                 <label htmlFor="name" className="block text-sm text-text-muted">
                   Your name
@@ -140,18 +145,18 @@ export function Contact() {
 
               {status === "success" && (
                 <p className="text-center text-sm text-amber-600 dark:text-amber-400">
-                  Thanks — your inquiry was sent. We&apos;ll get back to you soon.
+                  Thanks — your inquiry was emailed to us. We&apos;ll get back to you soon.
                 </p>
               )}
               {status === "error" && (
                 <p className="text-center text-sm text-red-600 dark:text-red-400">
-                  Something went wrong. Call us at{" "}
+                  Couldn&apos;t send right now. Call{" "}
                   <a href="tel:+18323991024" className="underline">
                     (832) 399-1024
                   </a>{" "}
                   or email{" "}
-                  <a href="mailto:info@lantanaelectric.com" className="underline">
-                    info@lantanaelectric.com
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="underline">
+                    {CONTACT_EMAIL}
                   </a>
                   .
                 </p>
