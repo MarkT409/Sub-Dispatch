@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import { positions } from "@/lib/join-positions";
 
 export function JoinForm() {
@@ -14,6 +15,7 @@ export function JoinForm() {
     const body = encodeURIComponent(
       `Name: ${name}\nPosition of interest: ${role}\nYears of experience: ${experience}\n\n${message}`
     );
+    toast.success("Opening your email app to send the application.");
     window.location.href = `mailto:noreply@lantanaelectric.com?subject=${subject}&body=${body}`;
   }
 

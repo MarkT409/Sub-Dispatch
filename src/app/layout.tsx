@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { DM_Sans, Outfit } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AppToaster } from "@/components/AppToaster";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -44,7 +45,10 @@ export default function RootLayout({
         <Script id="lantana-theme-init" strategy="beforeInteractive">
           {`(function(){try{var d=document.documentElement;var t=localStorage.getItem('lantana-theme');if(t==='light'){d.classList.remove('dark')}else if(t==='dark'){d.classList.add('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){d.classList.add('dark')}else{d.classList.remove('dark')}}catch(e){}})();`}
         </Script>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          <AppToaster />
+        </ThemeProvider>
       </body>
     </html>
   );

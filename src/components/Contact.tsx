@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-
-type FormStatus = "idle" | "sending" | "success" | "needsActivation" | "error";
+import { toast } from "sonner";
 
 const CONTACT_EMAIL = "noreply@lantanaelectric.com";
 
 export function Contact() {
-  const [status, setStatus] = useState<FormStatus>("idle");
+  const [sending, setSending] = useState(false);
   const [nextUrl, setNextUrl] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("sent") === "1") {
-      setStatus("success");
+      toast.success("Thanks — your inquiry was sent. We'll get back to you soon.");
+      window.history.replaceState({}, "", "/#contact");
     }
     setNextUrl(`${window.location.origin}/?sent=1#contact`);
   }, []);
@@ -22,7 +22,7 @@ export function Contact() {
     event.preventDefault();
     if (!nextUrl) return;
 
-    setStatus("sending");
+    setSending(true);
 
     const form = event.currentTarget;
     const formData = new FormData(form);
@@ -58,17 +58,19 @@ export function Contact() {
 
       if (ok) {
         form.reset();
-        setStatus("success");
+        toast.success("Thanks — your inquiry was sent. We'll get back to you soon.");
         window.history.replaceState({}, "", "/?sent=1#contact");
         return;
       }
 
       if (/activation/i.test(resultMessage)) {
-        setStatus("needsActivation");
+        toast.message("One-time setup required", {
+          description: `Open ${CONTACT_EMAIL} (check spam), click FormSubmit's activate link, then submit again.`,
+          duration: 10000,
+        });
         return;
       }
 
-      // Native POST fallback — FormSubmit emails then redirects back to the site
       form.setAttribute("action", `https://formsubmit.co/${CONTACT_EMAIL}`);
       form.setAttribute("method", "POST");
       form.submit();
@@ -76,6 +78,8 @@ export function Contact() {
       form.setAttribute("action", `https://formsubmit.co/${CONTACT_EMAIL}`);
       form.setAttribute("method", "POST");
       form.submit();
+    } finally {
+      setSending(false);
     }
   }
 
@@ -168,29 +172,15 @@ export function Contact() {
               </div>
               <button
                 type="submit"
-                disabled={status === "sending" || !nextUrl}
+                disabled={sending || !nextUrl}
                 className="rounded-full bg-amber-500 py-3.5 font-medium text-navy-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {status === "sending" ? "Sending…" : "Send inquiry"}
+                {sending ? "Sending…" : "Send inquiry"}
               </button>
 
-              {status === "success" && (
-                <p className="text-center text-sm text-amber-600 dark:text-amber-400">
-                  Thanks — your inquiry was sent. We&apos;ll get back to you soon.
-                </p>
-              )}
-              {status === "needsActivation" && (
-                <p className="text-center text-sm text-amber-600 dark:text-amber-400">
-                  One-time setup required: open <strong>{CONTACT_EMAIL}</strong> (check
-                  spam), click FormSubmit&apos;s activate link, then submit this form
-                  again. After that, inquiries email you automatically.
-                </p>
-              )}
-              {status === "idle" && (
-                <p className="text-center text-xs text-text-muted">
-                  We&apos;ll respond within one business day.
-                </p>
-              )}
+              <p className="text-center text-xs text-text-muted">
+                We&apos;ll respond within one business day.
+              </p>
             </form>
           </div>
         </div>

@@ -11,7 +11,8 @@
   "dependencies": {
     "next": "^16.2.5",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.15.12",
