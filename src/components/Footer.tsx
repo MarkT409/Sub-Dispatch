@@ -43,10 +43,10 @@ export function Footer() {
               (832) 399-1024
             </a>
             <a
-              href="mailto:info@lantanaelectric.com"
+              href="mailto:noreply@lantanaelectric.com"
               className="text-sm text-text-secondary transition-colors hover:text-amber-600 dark:hover:text-amber-400"
             >
-              info@lantanaelectric.com
+              noreply@lantanaelectric.com
             </a>
             <p className="text-sm text-text-muted">Central Texas</p>
             <a

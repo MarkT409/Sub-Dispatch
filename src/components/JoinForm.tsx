@@ -14,7 +14,7 @@ export function JoinForm() {
     const body = encodeURIComponent(
       `Name: ${name}\nPosition of interest: ${role}\nYears of experience: ${experience}\n\n${message}`
     );
-    window.location.href = `mailto:join@lantanaelectric.com?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:noreply@lantanaelectric.com?subject=${subject}&body=${body}`;
   }
 
   return (
@@ -88,10 +88,10 @@ export function JoinForm() {
       <p className="text-center text-xs text-text-muted">
         Or email us directly at{" "}
         <a
-          href="mailto:join@lantanaelectric.com"
+          href="mailto:noreply@lantanaelectric.com"
           className="text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
         >
-          join@lantanaelectric.com
+          noreply@lantanaelectric.com
         </a>
       </p>
     </form>

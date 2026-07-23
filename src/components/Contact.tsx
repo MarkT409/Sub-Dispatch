@@ -1,16 +1,27 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
-type FormStatus = "idle" | "sending" | "success" | "error";
+type FormStatus = "idle" | "sending" | "success" | "needsActivation" | "error";
 
-const CONTACT_EMAIL = "info@lantanaelectric.com";
+const CONTACT_EMAIL = "noreply@lantanaelectric.com";
 
 export function Contact() {
   const [status, setStatus] = useState<FormStatus>("idle");
+  const [nextUrl, setNextUrl] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("sent") === "1") {
+      setStatus("success");
+    }
+    setNextUrl(`${window.location.origin}/?sent=1#contact`);
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!nextUrl) return;
+
     setStatus("sending");
 
     const form = event.currentTarget;
@@ -33,6 +44,7 @@ export function Contact() {
           _subject: `Lantana website inquiry from ${name}`,
           _replyto: email,
           _template: "table",
+          _next: nextUrl,
         }),
       });
 
@@ -41,14 +53,29 @@ export function Contact() {
         message?: string;
       } | null;
 
-      if (!response.ok || result?.success === "false" || result?.success === false) {
-        throw new Error(result?.message ?? "Form submission failed");
+      const ok = result?.success === true || result?.success === "true";
+      const resultMessage = result?.message ?? "";
+
+      if (ok) {
+        form.reset();
+        setStatus("success");
+        window.history.replaceState({}, "", "/?sent=1#contact");
+        return;
       }
 
-      form.reset();
-      setStatus("success");
+      if (/activation/i.test(resultMessage)) {
+        setStatus("needsActivation");
+        return;
+      }
+
+      // Native POST fallback — FormSubmit emails then redirects back to the site
+      form.setAttribute("action", `https://formsubmit.co/${CONTACT_EMAIL}`);
+      form.setAttribute("method", "POST");
+      form.submit();
     } catch {
-      setStatus("error");
+      form.setAttribute("action", `https://formsubmit.co/${CONTACT_EMAIL}`);
+      form.setAttribute("method", "POST");
+      form.submit();
     }
   }
 
@@ -96,6 +123,10 @@ export function Contact() {
               className="flex flex-col justify-center gap-5 border-t border-border-default bg-bg-form p-8 md:p-12 lg:border-t-0 lg:border-l"
               onSubmit={handleSubmit}
             >
+              {nextUrl && <input type="hidden" name="_next" value={nextUrl} />}
+              <input type="hidden" name="_captcha" value="false" />
+              <input type="hidden" name="_template" value="table" />
+
               <div>
                 <label htmlFor="name" className="block text-sm text-text-muted">
                   Your name
@@ -137,7 +168,7 @@ export function Contact() {
               </div>
               <button
                 type="submit"
-                disabled={status === "sending"}
+                disabled={status === "sending" || !nextUrl}
                 className="rounded-full bg-amber-500 py-3.5 font-medium text-navy-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {status === "sending" ? "Sending…" : "Send inquiry"}
@@ -145,20 +176,14 @@ export function Contact() {
 
               {status === "success" && (
                 <p className="text-center text-sm text-amber-600 dark:text-amber-400">
-                  Thanks — your inquiry was emailed to us. We&apos;ll get back to you soon.
+                  Thanks — your inquiry was sent. We&apos;ll get back to you soon.
                 </p>
               )}
-              {status === "error" && (
-                <p className="text-center text-sm text-red-600 dark:text-red-400">
-                  Couldn&apos;t send right now. Call{" "}
-                  <a href="tel:+18323991024" className="underline">
-                    (832) 399-1024
-                  </a>{" "}
-                  or email{" "}
-                  <a href={`mailto:${CONTACT_EMAIL}`} className="underline">
-                    {CONTACT_EMAIL}
-                  </a>
-                  .
+              {status === "needsActivation" && (
+                <p className="text-center text-sm text-amber-600 dark:text-amber-400">
+                  One-time setup required: open <strong>{CONTACT_EMAIL}</strong> (check
+                  spam), click FormSubmit&apos;s activate link, then submit this form
+                  again. After that, inquiries email you automatically.
                 </p>
               )}
               {status === "idle" && (
