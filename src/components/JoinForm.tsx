@@ -1,26 +1,99 @@
 "use client";
 
+import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { positions } from "@/lib/join-positions";
 
+const CONTACT_EMAIL = "noreply@lantanaelectric.com";
+
 export function JoinForm() {
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const name = (form.elements.namedItem("name") as HTMLInputElement).value;
-    const role = (form.elements.namedItem("role") as HTMLSelectElement).value;
-    const experience = (form.elements.namedItem("experience") as HTMLInputElement).value;
-    const message = (form.elements.namedItem("message") as HTMLTextAreaElement).value;
-    const subject = encodeURIComponent(`Crew Application — ${role}`);
-    const body = encodeURIComponent(
-      `Name: ${name}\nPosition of interest: ${role}\nYears of experience: ${experience}\n\n${message}`
-    );
-    toast.success("Opening your email app to send the application.");
-    window.location.href = `mailto:noreply@lantanaelectric.com?subject=${subject}&body=${body}`;
+  const [sending, setSending] = useState(false);
+  const [nextUrl, setNextUrl] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("sent") === "1") {
+      toast.success("Thanks — your application was sent. We'll be in touch soon.");
+      window.history.replaceState({}, "", "/join");
+    }
+    setNextUrl(`${window.location.origin}/join?sent=1`);
+  }, []);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!nextUrl) return;
+
+    setSending(true);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const name = String(formData.get("name") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const role = String(formData.get("role") ?? "").trim();
+    const experience = String(formData.get("experience") ?? "").trim();
+    const message = String(formData.get("message") ?? "").trim();
+
+    try {
+      const response = await fetch(`https://formsubmit.co/ajax/${CONTACT_EMAIL}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          role,
+          experience,
+          message,
+          _subject: `Crew application — ${role} from ${name}`,
+          _replyto: email,
+          _template: "table",
+          _next: nextUrl,
+        }),
+      });
+
+      const result = (await response.json().catch(() => null)) as {
+        success?: string | boolean;
+        message?: string;
+      } | null;
+
+      const ok = result?.success === true || result?.success === "true";
+      const resultMessage = result?.message ?? "";
+
+      if (ok) {
+        form.reset();
+        toast.success("Thanks — your application was sent. We'll be in touch soon.");
+        window.history.replaceState({}, "", "/join?sent=1");
+        return;
+      }
+
+      if (/activation/i.test(resultMessage)) {
+        toast.message("One-time setup required", {
+          description: `Open ${CONTACT_EMAIL} (check spam), click FormSubmit's activate link, then submit again.`,
+          duration: 10000,
+        });
+        return;
+      }
+
+      form.setAttribute("action", `https://formsubmit.co/${CONTACT_EMAIL}`);
+      form.setAttribute("method", "POST");
+      form.submit();
+    } catch {
+      form.setAttribute("action", `https://formsubmit.co/${CONTACT_EMAIL}`);
+      form.setAttribute("method", "POST");
+      form.submit();
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
     <form className="mt-8 flex flex-col gap-5" onSubmit={handleSubmit}>
+      {nextUrl && <input type="hidden" name="_next" value={nextUrl} />}
+      <input type="hidden" name="_captcha" value="false" />
+      <input type="hidden" name="_template" value="table" />
+
       <div>
         <label htmlFor="name" className="block text-sm text-text-muted">
           Full name
@@ -36,6 +109,20 @@ export function JoinForm() {
       </div>
 
       <div>
+        <label htmlFor="email" className="block text-sm text-text-muted">
+          Email
+        </label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          required
+          className="mt-1.5 w-full rounded-lg border border-border-default bg-bg-input px-4 py-3 text-text-primary placeholder:text-text-muted focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 dark:focus:border-amber-400/50 dark:focus:ring-amber-400/30"
+          placeholder="you@email.com"
+        />
+      </div>
+
+      <div>
         <label htmlFor="role" className="block text-sm text-text-muted">
           Position of interest
         </label>
@@ -47,7 +134,9 @@ export function JoinForm() {
         >
           <option value="">Select a role…</option>
           {positions.map((pos) => (
-            <option key={pos.title} value={pos.title}>{pos.title}</option>
+            <option key={pos.title} value={pos.title}>
+              {pos.title}
+            </option>
           ))}
           <option value="Other">Other / Not sure yet</option>
         </select>
@@ -82,18 +171,19 @@ export function JoinForm() {
 
       <button
         type="submit"
-        className="rounded-full bg-amber-500 py-3.5 font-medium text-navy-950 transition-colors hover:bg-amber-400"
+        disabled={sending || !nextUrl}
+        className="rounded-full bg-amber-500 py-3.5 font-medium text-navy-950 transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        Send application
+        {sending ? "Sending…" : "Send application"}
       </button>
 
       <p className="text-center text-xs text-text-muted">
         Or email us directly at{" "}
         <a
-          href="mailto:noreply@lantanaelectric.com"
+          href={`mailto:${CONTACT_EMAIL}`}
           className="text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
         >
-          noreply@lantanaelectric.com
+          {CONTACT_EMAIL}
         </a>
       </p>
     </form>
