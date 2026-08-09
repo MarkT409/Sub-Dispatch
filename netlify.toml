@@ -7,3 +7,10 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[functions]
+  directory = "netlify/functions"
+
+# Auto-sync Google Sheets job board → admin DB (backup; primary = Apps Script webhook)
+[functions."sync-job-board"]
+  schedule = "0 * * * *"
