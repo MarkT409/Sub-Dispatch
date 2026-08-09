@@ -23,8 +23,17 @@ export function getZohoAccountsBase(location?: string | null) {
 
 export function getSiteUrl() {
   const fromEnv = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  const netlifyUrl = (process.env.URL ?? process.env.DEPLOY_PRIME_URL ?? "").replace(
+    /\/$/,
+    "",
+  );
+
+  // Prefer a real https site URL. Ignore localhost SITE_URL when Netlify provides URL.
+  if (fromEnv && !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(fromEnv)) {
+    return fromEnv;
+  }
+  if (netlifyUrl) return netlifyUrl;
   if (fromEnv) return fromEnv;
-  if (process.env.URL) return process.env.URL.replace(/\/$/, ""); // Netlify
   return "http://localhost:3000";
 }
 
