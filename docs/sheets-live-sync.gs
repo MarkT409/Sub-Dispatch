@@ -9,7 +9,7 @@
  * ONE-TIME SETUP (required)
  * -------------------------
  * 1. Project Settings (gear) → Script properties:
- *      SHEETS_SYNC_URL    = https://YOUR-DEPLOYED-SITE/api/admin/sheets/sync
+ *      SHEETS_SYNC_URL    = https://lantanaelectric.com/api/admin/sheets/sync
  *                           (must be public HTTPS — localhost will NOT work)
  *      SHEETS_SYNC_SECRET = same value as SHEETS_SYNC_SECRET in Netlify
  *
