@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/service";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = createServiceClient();
 
     // Verify this assignment belongs to the logged-in crew member
     const { data: assignment, error: fetchError } = await supabase
