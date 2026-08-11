@@ -6,9 +6,22 @@ import { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SyncSheetsButton } from "@/components/admin/SyncSheetsButton";
 import { formatCurrency, formatDate, formatWorkKind } from "@/lib/admin-format";
-import { JOB_STATUSES, JOB_TYPES, type Job } from "@/lib/admin-types";
+import { JOB_STATUSES, JOB_TYPES, WORK_KINDS, type Job } from "@/lib/admin-types";
 
-export function JobsManager({ initialJobs }: { initialJobs: Job[] }) {
+type CrewMember = {
+  id: string;
+  name: string;
+  email: string | null;
+  active: boolean;
+};
+
+export function JobsManager({ 
+  initialJobs,
+  crewMembers = [],
+}: { 
+  initialJobs: Job[];
+  crewMembers?: CrewMember[];
+}) {
   const router = useRouter();
   const [jobs, setJobs] = useState(initialJobs);
   const [open, setOpen] = useState(false);
@@ -33,11 +46,14 @@ export function JobsManager({ initialJobs }: { initialJobs: Job[] }) {
           client: formData.get("client"),
           job_type: formData.get("job_type"),
           status: formData.get("status"),
+          work_kind: formData.get("work_kind"),
           site_address: formData.get("site_address"),
+          work_date: formData.get("work_date"),
           start_date: formData.get("start_date"),
           end_date: formData.get("end_date"),
           quoted_amount: formData.get("quoted_amount"),
           notes: formData.get("notes"),
+          crew_assignments: formData.getAll("crew_assignments[]"),
         }),
       });
       const result = await response.json();
@@ -48,7 +64,7 @@ export function JobsManager({ initialJobs }: { initialJobs: Job[] }) {
       setJobs((prev) => [result.job, ...prev]);
       form.reset();
       setOpen(false);
-      toast.success("Job created");
+      toast.success("Job created and crew notified");
       router.refresh();
     } catch {
       toast.error("Could not create job");
@@ -112,10 +128,39 @@ export function JobsManager({ initialJobs }: { initialJobs: Job[] }) {
               label: s.replace("_", " "),
             }))}
           />
+          <Select
+            label="Work kind"
+            name="work_kind"
+            options={[
+              { value: "", label: "— Select —" },
+              ...WORK_KINDS.map((k) => ({ value: k, label: k.charAt(0).toUpperCase() + k.slice(1) }))
+            ]}
+          />
+          <Field label="Work date" name="work_date" type="date" required />
           <Field label="Site address" name="site_address" className="md:col-span-2" />
           <Field label="Start date" name="start_date" type="date" />
           <Field label="End date" name="end_date" type="date" />
           <Field label="Quoted amount" name="quoted_amount" type="number" step="0.01" />
+          
+          {crewMembers.length > 0 && (
+            <div className="md:col-span-2">
+              <label className="block text-sm text-text-muted mb-2">Assign crew members</label>
+              <div className="grid gap-2 md:grid-cols-2">
+                {crewMembers.filter(c => c.active).map(crew => (
+                  <label key={crew.id} className="flex items-center gap-2 p-2 rounded border border-border-default hover:bg-bg-input cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="crew_assignments[]"
+                      value={crew.id}
+                      className="rounded"
+                    />
+                    <span className="text-sm">{crew.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="md:col-span-2">
             <label className="block text-sm text-text-muted">Notes</label>
             <textarea
@@ -130,7 +175,7 @@ export function JobsManager({ initialJobs }: { initialJobs: Job[] }) {
               disabled={saving}
               className="rounded-full bg-amber-500 px-5 py-2.5 text-sm font-medium text-navy-950 disabled:opacity-70"
             >
-              {saving ? "Saving…" : "Create job"}
+              {saving ? "Saving…" : "Create job & assign crew"}
             </button>
           </div>
         </form>

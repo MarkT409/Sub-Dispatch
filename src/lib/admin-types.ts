@@ -95,3 +95,5 @@ export const JOB_STATUSES: JobStatus[] = [
 ];
 
 export const JOB_TYPES: JobType[] = ["incoming", "outgoing"];
+
+export const WORK_KINDS: WorkKind[] = ["rough", "trim", "service", "unknown"];
