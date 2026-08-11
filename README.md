@@ -41,6 +41,27 @@ Open [http://localhost:3000](http://localhost:3000). Admin: [http://localhost:30
 
 Admins open `/admin/login` and click **Sign in with Zoho**. They enter their normal Zoho credentials on Zoho’s site. This app never stores that password — when the Zoho password changes, sign-in here uses the new one automatically. Only allowlisted emails can enter.
 
+## Push notifications (new board jobs)
+
+Admins can enable phone banners when a Lantana job is added to the board.
+
+1. Generate VAPID keys:
+   ```bash
+   npx web-push generate-vapid-keys
+   ```
+2. Add to Netlify / `.env.local`:
+   - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+   - `VAPID_PRIVATE_KEY`
+   - `VAPID_SUBJECT=mailto:noreply@lantanaelectric.com`
+3. Run [`supabase/migrations/003_push_subscriptions.sql`](supabase/migrations/003_push_subscriptions.sql) in Supabase.
+4. Redeploy (public VAPID key is baked into the client build).
+5. On each admin device:
+   - Open `https://lantanaelectric.com/admin` while signed in
+   - Tap **Enable notifications** and allow permission
+   - **iPhone:** Share → **Add to Home Screen**, open the home-screen icon, then enable (Safari in a tab cannot receive Web Push)
+
+When Sheets sync inserts a new Lantana job, subscribed devices get a notification; tapping it opens that job.
+
 ## Google Sheets job board sync
 
 1. In [Google Cloud Console](https://console.cloud.google.com/): create a project → enable **Google Sheets API** → create a **service account** → download a JSON key.
@@ -65,12 +86,12 @@ Admins open `/admin/login` and click **Sign in with Zoho**. They enter their nor
 
 Your [Lantana invoices](https://docs.google.com/spreadsheets/d/1TvXUr9-G82P6b1ZPsuJWOYa2tNFwoXN8DAUhkMKklVU) sheet is the durable payout ledger.
 
-Admin **Sync invoices** currently reads **InvoiceTemplate** only (DRAW → dashboard sync is paused). The Apps Script `docs/draw-import.gs` can still keep the local DRAW tab updated for later.
+Admin **Sync invoices** reads **DRAW** (live prices) plus **InvoiceTemplate** for older weeks.
 
 1. Share that spreadsheet with the **same** service account (**Viewer**).
 2. Add `GOOGLE_INVOICE_SPREADSHEET_ID=1TvXUr9-G82P6b1ZPsuJWOYa2tNFwoXN8DAUhkMKklVU` to `.env.local` / Netlify.
 3. Run [`supabase/migrations/002_invoice_sync.sql`](supabase/migrations/002_invoice_sync.sql) in Supabase.
-4. In `/admin`, click **Sync invoices** (or **Sync all**). Gross appears on jobs matched by address.
+4. Keep the local DRAW tab updated via [`docs/draw-import.gs`](docs/draw-import.gs), then in `/admin` click **Sync invoices** (or **Sync all**).
 
 | What | Where |
 |------|--------|

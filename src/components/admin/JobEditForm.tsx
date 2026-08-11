@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { Field, Select } from "@/components/admin/JobsManager";
-import { formatCurrency, formatDate } from "@/lib/admin-format";
+import { formatCurrency, formatDate, formatWorkKind } from "@/lib/admin-format";
 import { JOB_STATUSES, JOB_TYPES, type Job } from "@/lib/admin-types";
 
 export function JobEditForm({ job }: { job: Job }) {
@@ -62,9 +62,7 @@ export function JobEditForm({ job }: { job: Job }) {
           <Meta label="Assigned" value={job.assigned_to ?? "—"} />
           <Meta
             label="Kind"
-            value={
-              job.work_kind && job.work_kind !== "unknown" ? job.work_kind : "—"
-            }
+            value={formatWorkKind(job.work_kind) ?? "—"}
           />
           <Meta label="Plan" value={job.plan_name ?? "—"} />
           <Meta label="Sqft" value={job.plan_sqft ?? "—"} />

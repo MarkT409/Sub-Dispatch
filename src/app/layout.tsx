@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { DM_Sans, Outfit } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -15,6 +15,13 @@ const outfit = Outfit({
   variable: "--font-outfit",
 });
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+  ],
+};
+
 export const metadata: Metadata = {
   title: "Lantana Electric LLC | Residential & Commercial Electrical",
   description:
@@ -26,6 +33,19 @@ export const metadata: Metadata = {
     "electrical contractor",
     "Lantana",
   ],
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Lantana Admin",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
   openGraph: {
     title: "Lantana | Electrical Subcontractor",
     description:

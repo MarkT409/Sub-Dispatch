@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { SyncSheetsButton } from "@/components/admin/SyncSheetsButton";
-import { formatCurrency, formatDate } from "@/lib/admin-format";
+import { formatCurrency, formatDate, formatWorkKind } from "@/lib/admin-format";
 import { JOB_STATUSES, JOB_TYPES, type Job } from "@/lib/admin-types";
 
 export function JobsManager({ initialJobs }: { initialJobs: Job[] }) {
@@ -137,74 +137,64 @@ export function JobsManager({ initialJobs }: { initialJobs: Job[] }) {
       )}
 
       <div className="overflow-hidden rounded-xl border border-border-default bg-bg-raised">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-left text-sm">
-            <thead className="bg-bg-form text-text-muted">
-              <tr>
-                <th className="px-5 py-3 font-medium">Address</th>
-                <th className="px-5 py-3 font-medium">Date</th>
-                <th className="px-5 py-3 font-medium">Crew</th>
-                <th className="px-5 py-3 font-medium">Assigned</th>
-                <th className="px-5 py-3 font-medium">Kind</th>
-                <th className="px-5 py-3 font-medium">Status</th>
-                <th className="px-5 py-3 font-medium">Gross</th>
-                <th className="px-5 py-3 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
-              {jobs.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-text-muted">
-                    No jobs yet. Sync from Sheets to pull the weekly board.
-                  </td>
-                </tr>
-              ) : (
-                jobs.map((job) => (
-                  <tr key={job.id} className="border-t border-border-subtle">
-                    <td className="px-5 py-3">
+        {jobs.length === 0 ? (
+          <p className="px-4 py-10 text-center text-sm text-text-muted sm:px-5">
+            No jobs yet. Sync from Sheets to pull the weekly board.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border-subtle">
+            {jobs.map((job) => {
+              const gross =
+                job.invoice_gross != null || job.quoted_amount != null
+                  ? formatCurrency(job.invoice_gross ?? job.quoted_amount)
+                  : "—";
+              const kind =
+                formatWorkKind(job.work_kind) ??
+                formatWorkKind(job.job_type) ??
+                job.job_type;
+              return (
+                <li key={job.id} className="px-4 py-3.5 sm:px-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
                       <Link
                         href={`/admin/jobs/${job.id}`}
-                        className="font-medium hover:text-amber-600 dark:hover:text-amber-400"
+                        className="font-medium text-text-primary hover:text-amber-600 dark:hover:text-amber-400"
                       >
                         {job.title}
                       </Link>
-                      {job.source === "google_sheets" && (
-                        <p className="text-xs text-text-muted">From Sheets</p>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-text-secondary">
-                      {formatDate(job.work_date ?? job.start_date)}
-                    </td>
-                    <td className="px-5 py-3 text-text-secondary">{job.crew_lead ?? "—"}</td>
-                    <td className="px-5 py-3 text-text-secondary">{job.assigned_to ?? "—"}</td>
-                    <td className="px-5 py-3 capitalize">
-                      {job.work_kind && job.work_kind !== "unknown"
-                        ? job.work_kind
-                        : job.job_type}
-                    </td>
-                    <td className="px-5 py-3 capitalize">
-                      {job.status.replace("_", " ")}
-                    </td>
-                    <td className="px-5 py-3">
-                      {job.invoice_gross != null || job.quoted_amount != null
-                        ? formatCurrency(job.invoice_gross ?? job.quoted_amount)
-                        : "—"}
-                    </td>
-                    <td className="px-5 py-3 text-right">
+                      <p className="mt-1 text-xs text-text-muted">
+                        {formatDate(job.work_date ?? job.start_date)}
+                        <span className="mx-1.5 text-border-default">·</span>
+                        {job.assigned_to ?? job.crew_lead ?? "Unassigned"}
+                        <span className="mx-1.5 text-border-default">·</span>
+                        {kind}
+                        {job.source === "google_sheets" ? (
+                          <>
+                            <span className="mx-1.5 text-border-default">·</span>
+                            Sheets
+                          </>
+                        ) : null}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-display text-sm font-semibold">{gross}</p>
+                      <p className="mt-0.5 text-[11px] capitalize text-text-muted">
+                        {job.status.replace("_", " ")}
+                      </p>
                       <button
                         type="button"
                         onClick={() => handleDelete(job.id)}
-                        className="text-xs text-red-600 hover:underline dark:text-red-400"
+                        className="mt-1.5 text-xs text-red-600 hover:underline dark:text-red-400"
                       >
                         Delete
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import {
   PreviousMonthsJobs,
   ThisWeekJobs,
 } from "@/components/admin/JobsByMonth";
+import { DashboardMetrics } from "@/components/admin/DashboardMetrics";
 import { SyncSheetsButton } from "@/components/admin/SyncSheetsButton";
 import { formatCurrency } from "@/lib/admin-format";
 import {
@@ -164,50 +165,19 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
-            Work &amp; gross
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {workCards.map((card) => (
-              <MetricCard key={card.label} {...card} />
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
-            Cash &amp; year
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {cashCards.map((card) => (
-              <MetricCard key={card.label} {...card} />
-            ))}
-          </div>
-        </div>
-      </div>
+      <DashboardMetrics
+        workCards={workCards}
+        cashCards={cashCards}
+        summary={{
+          lastWeekGross: formatCurrency(lastWeekGross.total),
+          thisWeekGross: formatCurrency(weekGross.total),
+          onBoard: String(boardCount),
+        }}
+      />
 
       <ThisWeekJobs jobs={allJobs} />
       <CurrentMonthJobs jobs={allJobs} />
       <PreviousMonthsJobs jobs={allJobs} />
-    </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-xl border border-border-default bg-bg-raised p-5">
-      <p className="text-sm text-text-muted">{label}</p>
-      <p className="mt-2 font-display text-2xl font-bold">{value}</p>
-      {hint ? <p className="mt-1.5 text-xs text-text-muted">{hint}</p> : null}
     </div>
   );
 }

@@ -228,6 +228,8 @@ export function parseJobCellText(
   address: string;
   assigned_to: string | null;
   work_kind: WorkKind;
+  /** Board cell includes / Ser — also bill a separate service job */
+  has_service: boolean;
   notes: string | null;
 } | null {
   let text = raw.replace(/\s+/g, " ").trim();
@@ -244,8 +246,9 @@ export function parseJobCellText(
   }
 
   const lower = text.toLowerCase();
+  const has_service = /\/\s*ser(vice)?\b/i.test(lower);
   if (lower.includes("/ meter") || lower.includes("/meter")) work_kind = "trim";
-  else if (lower.includes("/ ser") || lower.includes("/ser")) work_kind = "rough";
+  // / Ser is a separate paid service line — do not reclassify the base job as rough
 
   let addressPart = text;
   let assigned_to: string | null = null;
@@ -273,10 +276,14 @@ export function parseJobCellText(
   if (!address || SKIP_CELL.test(address)) return null;
   if (address.length < 3) return null;
 
+  // / Ser cells are almost always rough + service; default base kind if color/prefix missing
+  if (has_service && work_kind === "unknown") work_kind = "rough";
+
   return {
     address,
     assigned_to,
     work_kind,
+    has_service,
     notes: noteBits.length ? noteBits.join(" · ") : null,
   };
 }
@@ -401,10 +408,11 @@ export function parseJobBoardGrid(
 
       const work_date = addDaysIso(monday, dayOffset);
       const sheets_week = sheetTitle.trim();
-      const sheets_row_key = `${sheets_week}:${cell_ref}`;
+      const baseKey = `${sheets_week}:${cell_ref}`;
 
+      // Base job (rough/trim). / Ser also creates a separate service payout line.
       jobs.push({
-        sheets_row_key,
+        sheets_row_key: `${baseKey}:${parsed.work_kind}`,
         sheets_week,
         title: parsed.address,
         site_address: parsed.address,
@@ -412,10 +420,29 @@ export function parseJobBoardGrid(
         crew_lead: crewLead,
         assigned_to: parsed.assigned_to,
         work_kind: parsed.work_kind,
-        notes: parsed.notes,
+        notes: parsed.has_service
+          ? [parsed.notes, "Includes separate service line"].filter(Boolean).join(" · ")
+          : parsed.notes,
         cell_ref,
         raw,
       });
+
+      if (parsed.has_service) {
+        const serviceAddress = `${parsed.address} / Ser`;
+        jobs.push({
+          sheets_row_key: `${baseKey}:service`,
+          sheets_week,
+          title: serviceAddress,
+          site_address: serviceAddress,
+          work_date,
+          crew_lead: crewLead,
+          assigned_to: parsed.assigned_to,
+          work_kind: "service",
+          notes: "Service payout (separate from rough)",
+          cell_ref,
+          raw,
+        });
+      }
     }
   });
 

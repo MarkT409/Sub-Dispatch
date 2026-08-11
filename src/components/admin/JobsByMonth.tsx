@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { formatCurrency, formatDate } from "@/lib/admin-format";
+import { formatCurrency, formatDate, formatWorkKind } from "@/lib/admin-format";
 import { jobGross, sumJobGross } from "@/lib/admin-metrics";
 import type { Job } from "@/lib/admin-types";
 import { getCurrentBillingWeekRange } from "@/lib/sheets/job-board-parse";
@@ -96,19 +96,14 @@ function weekRangeLabel(weekStart: string, weekEnd: string) {
 function SectionStats({ jobs }: { jobs: Job[] }) {
   const { total, priced, unpriced } = sumJobGross(jobs);
   return (
-    <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-sm">
-      <span className="font-display text-base font-semibold text-text-primary">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-right text-sm sm:justify-end">
+      <span className="font-display text-sm font-semibold text-text-primary sm:text-base">
         {formatCurrency(total)}
-        <span className="ml-1.5 text-xs font-normal text-text-muted">gross</span>
+        <span className="ml-1 text-[11px] font-normal text-text-muted">gross</span>
       </span>
-      <span className="text-text-muted">
+      <span className="text-xs text-text-muted sm:text-sm">
         {jobs.length} job{jobs.length === 1 ? "" : "s"}
-        {unpriced > 0 ? (
-          <span className="text-text-muted">
-            {" "}
-            · {priced} priced · {unpriced} open
-          </span>
-        ) : null}
+        {unpriced > 0 ? ` · ${priced} priced` : ""}
       </span>
     </div>
   );
@@ -116,64 +111,53 @@ function SectionStats({ jobs }: { jobs: Job[] }) {
 
 function JobsTable({ jobs, emptyMessage }: { jobs: Job[]; emptyMessage: string }) {
   if (jobs.length === 0) {
-    return <p className="px-5 py-8 text-center text-sm text-text-muted">{emptyMessage}</p>;
+    return <p className="px-4 py-8 text-center text-sm text-text-muted sm:px-5">{emptyMessage}</p>;
   }
 
   const { total } = sumJobGross(jobs);
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[800px] text-left text-sm">
-        <thead className="bg-bg-form text-text-muted">
-          <tr>
-            <th className="px-5 py-2.5 font-medium">Address</th>
-            <th className="px-5 py-2.5 font-medium">Date</th>
-            <th className="px-5 py-2.5 font-medium">Assigned</th>
-            <th className="px-5 py-2.5 font-medium">Kind</th>
-            <th className="px-5 py-2.5 font-medium">Gross</th>
-            <th className="px-5 py-2.5 font-medium">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {jobs.map((job) => {
-            const gross = jobGross(job);
-            return (
-              <tr key={job.id} className="border-t border-border-subtle">
-                <td className="px-5 py-3 font-medium">
-                  <Link
-                    href={`/admin/jobs/${job.id}`}
-                    className="hover:text-amber-600 dark:hover:text-amber-400"
-                  >
-                    {job.title}
-                  </Link>
-                </td>
-                <td className="px-5 py-3 text-text-secondary">
-                  {formatDate(job.work_date ?? job.start_date)}
-                </td>
-                <td className="px-5 py-3 text-text-secondary">{job.assigned_to ?? "—"}</td>
-                <td className="px-5 py-3 capitalize text-text-secondary">
-                  {job.work_kind && job.work_kind !== "unknown" ? job.work_kind : job.job_type}
-                </td>
-                <td className="px-5 py-3 text-text-secondary">
-                  {gross != null ? formatCurrency(gross) : "—"}
-                </td>
-                <td className="px-5 py-3 capitalize text-text-secondary">
-                  {String(job.status).replace("_", " ")}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-        <tfoot>
-          <tr className="border-t border-border-default bg-bg-form/60">
-            <td colSpan={4} className="px-5 py-3 text-sm font-medium text-text-secondary">
-              Total gross
-            </td>
-            <td className="px-5 py-3 font-display text-sm font-semibold">{formatCurrency(total)}</td>
-            <td />
-          </tr>
-        </tfoot>
-      </table>
+    <div>
+      <ul className="divide-y divide-border-subtle">
+        {jobs.map((job) => {
+          const gross = jobGross(job);
+          const kind =
+            formatWorkKind(job.work_kind) ??
+            formatWorkKind(job.job_type) ??
+            job.job_type;
+          return (
+            <li key={job.id}>
+              <Link
+                href={`/admin/jobs/${job.id}`}
+                className="flex items-start justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-bg-form/60 sm:px-5"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-text-primary">{job.title}</p>
+                  <p className="mt-1 text-xs text-text-muted">
+                    {formatDate(job.work_date ?? job.start_date)}
+                    <span className="mx-1.5 text-border-default">·</span>
+                    {job.assigned_to ?? "Unassigned"}
+                    <span className="mx-1.5 text-border-default">·</span>
+                    {kind}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-display text-sm font-semibold text-text-primary">
+                    {gross != null ? formatCurrency(gross) : "—"}
+                  </p>
+                  <p className="mt-0.5 text-[11px] capitalize text-text-muted">
+                    {String(job.status).replace("_", " ")}
+                  </p>
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="flex items-center justify-between gap-3 border-t border-border-default bg-bg-form/60 px-4 py-3 sm:px-5">
+        <span className="text-sm font-medium text-text-secondary">Total gross</span>
+        <span className="font-display text-sm font-semibold">{formatCurrency(total)}</span>
+      </div>
     </div>
   );
 }

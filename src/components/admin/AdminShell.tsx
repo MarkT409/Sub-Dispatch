@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { EnableNotificationsButton } from "@/components/admin/EnableNotificationsButton";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -63,10 +64,11 @@ export function AdminShell({
               })}
             </nav>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {email && (
-              <span className="hidden text-xs text-text-muted md:inline">{email}</span>
+              <span className="hidden text-xs text-text-muted lg:inline">{email}</span>
             )}
+            <EnableNotificationsButton />
             <ThemeToggle />
             <button
               type="button"

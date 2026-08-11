@@ -15,6 +15,7 @@ import {
   type ParsedBoardJob,
 } from "@/lib/sheets/job-board-parse";
 import { isLantanaJob } from "@/lib/sheets/worker-map";
+import { notifyNewBoardJobs } from "@/lib/push/send";
 
 export type SyncJobBoardResult = {
   ok: true;
@@ -22,6 +23,7 @@ export type SyncJobBoardResult = {
   upserted: number;
   cancelled: number;
   parsed: number;
+  notified?: number;
 };
 
 function statusForWorkDate(workDate: string) {
@@ -148,6 +150,14 @@ export async function syncJobBoard(
   );
 
   let upserted = 0;
+  const insertedJobs: {
+    id: string;
+    title: string;
+    site_address: string | null;
+    work_kind: string | null;
+    assigned_to: string | null;
+  }[] = [];
+
   if (allJobs.length > 0) {
     const keys = allJobs.map((j) => j.sheets_row_key);
     const existingRows: { id: string; sheets_row_key: string; status: string }[] = [];
@@ -188,8 +198,12 @@ export async function syncJobBoard(
 
     for (let i = 0; i < toInsert.length; i += 100) {
       const chunk = toInsert.slice(i, i + 100);
-      const { error } = await supabase.from("jobs").insert(chunk);
+      const { data: created, error } = await supabase
+        .from("jobs")
+        .insert(chunk)
+        .select("id, title, site_address, work_kind, assigned_to");
       if (error) throw new Error(error.message);
+      if (created?.length) insertedJobs.push(...created);
       upserted += chunk.length;
     }
 
@@ -261,11 +275,22 @@ export async function syncJobBoard(
     cancelled += foreignIds.length;
   }
 
+  let notified = 0;
+  if (insertedJobs.length) {
+    try {
+      const result = await notifyNewBoardJobs(supabase, insertedJobs);
+      notified = result.sent;
+    } catch (err) {
+      console.error("notifyNewBoardJobs failed", err);
+    }
+  }
+
   return {
     ok: true,
     sheetsSynced,
     upserted,
     cancelled,
     parsed: allJobs.length,
+    notified,
   };
 }

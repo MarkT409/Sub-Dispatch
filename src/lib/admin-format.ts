@@ -7,6 +7,12 @@ export function formatCurrency(amount: number | null | undefined) {
   }).format(value);
 }
 
+export function formatWorkKind(kind: string | null | undefined) {
+  const value = String(kind ?? "").trim().toLowerCase();
+  if (!value || value === "unknown") return null;
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 export function formatDate(value: string | null | undefined) {
   if (!value) return "—";
   const date = new Date(value);
