@@ -3,7 +3,7 @@ import Google from "next-auth/providers/google";
 import Apple from "next-auth/providers/apple";
 import Microsoft from "next-auth/providers/microsoft-entra-id";
 import GitHub from "next-auth/providers/github";
-import { createClient } from "@/lib/supabase/service";
+import { createServiceClient } from "@/lib/supabase/service";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -13,7 +13,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
     Apple({
       clientId: process.env.CREW_APPLE_CLIENT_ID!,
-      clientSecret: process.env.CREW_APPLE_CLIENT_SECRET!,
+      clientSecret: process.env.APPLE_CLIENT_SECRET!,
     }),
     Microsoft({
       clientId: process.env.CREW_MICROSOFT_CLIENT_ID!,
@@ -37,7 +37,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (!account || !user.email) return false;
 
       try {
-        const supabase = createClient();
+        const supabase = createServiceClient();
 
         // Check if crew user exists
         const { data: existingUser } = await supabase
@@ -92,7 +92,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, account, profile }) {
       if (account) {
         // Fetch crew user info on initial sign-in
-        const supabase = createClient();
+        const supabase = createServiceClient();
         const { data: crewUser } = await supabase
           .from("crew_users")
           .select("*, crew_members!inner(*)")

@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/service";
+import { createServiceClient } from "@/lib/supabase/service";
 import { Logo } from "@/components/Logo";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
@@ -13,7 +13,7 @@ export default async function CrewDashboardPage() {
     redirect("/crew/login");
   }
 
-  const supabase = createClient();
+  const supabase = createServiceClient();
 
   // Get crew member info
   const { data: crewMember } = await supabase
