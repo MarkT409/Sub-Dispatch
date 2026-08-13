@@ -71,7 +71,7 @@ export async function notifyNewBoardJobs(
     const address = job.site_address || job.title;
     const who = job.assigned_to || "Unassigned";
     const payload = JSON.stringify({
-      title: "New Lantana job",
+      title: "New job assigned",
       body: `${kind} · ${address} · ${who}`,
       url: `/admin/jobs/${job.id}`,
     });

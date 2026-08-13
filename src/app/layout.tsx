@@ -23,20 +23,19 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Lantana Electric LLC | Residential & Commercial Electrical",
+  title: "Sub-Dispatch | Crew & Admin Dispatch",
   description:
-    "Lantana Electric provides residential, commercial, and underground electrical services—rough-in, trim, builder power, and subcontractor crews across Central Texas.",
+    "Dispatch management for electrical subcontracting crews—assign jobs, track responses, and manage schedules.",
   keywords: [
     "electrical subcontractor",
-    "rough-in electrical",
-    "trim electrical",
-    "electrical contractor",
-    "Lantana",
+    "crew dispatch",
+    "job scheduling",
+    "Sub-Dispatch",
   ],
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Lantana Admin",
+    title: "Sub-Dispatch",
     statusBarStyle: "default",
   },
   icons: {
@@ -47,9 +46,9 @@ export const metadata: Metadata = {
     apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
   openGraph: {
-    title: "Lantana | Electrical Subcontractor",
+    title: "Sub-Dispatch",
     description:
-      "Skilled crews for rough-in and trim installation. Partner with Lantana for reliable electrical subcontracting.",
+      "Assign crews, track job responses, and manage electrical subcontracting work.",
     type: "website",
   },
 };

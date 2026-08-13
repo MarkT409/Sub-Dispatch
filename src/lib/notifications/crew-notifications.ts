@@ -47,16 +47,22 @@ export async function sendCrewAssignmentNotifications(
 
     if (!crewUsers || crewUsers.length === 0) return;
 
+    const kind = job.work_kind
+      ? String(job.work_kind).charAt(0).toUpperCase() +
+        String(job.work_kind).slice(1)
+      : "Job";
+    const where = job.site_address || job.title || "Job";
+
     const payload = JSON.stringify({
-      title: "New Job Assignment",
-      body: `${job.title} - ${workDate}`,
+      title: "New job dispatched",
+      body: `${kind} · ${where} · ${workDate}`,
       icon: "/icon-192.png",
       badge: "/icon-192.png",
-      url: "/crew",
+      url: "/crew?view=assignments",
       tag: `job-${jobId}`,
       data: {
         jobId,
-        url: "/crew",
+        url: "/crew?view=assignments",
       },
     });
 

@@ -228,7 +228,7 @@ export function parseJobCellText(
   address: string;
   assigned_to: string | null;
   work_kind: WorkKind;
-  /** Board cell includes / Ser — also bill a separate service job */
+  /** Board cell includes / Ser (kept on the same job address). */
   has_service: boolean;
   notes: string | null;
 } | null {
@@ -247,8 +247,8 @@ export function parseJobCellText(
 
   const lower = text.toLowerCase();
   const has_service = /\/\s*ser(vice)?\b/i.test(lower);
-  if (lower.includes("/ meter") || lower.includes("/meter")) work_kind = "trim";
-  // / Ser is a separate paid service line — do not reclassify the base job as rough
+  const has_meter = /\/\s*meter\b/i.test(lower);
+  if (has_meter) work_kind = "trim";
 
   let addressPart = text;
   let assigned_to: string | null = null;
@@ -259,24 +259,29 @@ export function parseJobCellText(
   }
 
   if (assigned_to) {
-    assigned_to = assigned_to.replace(/\s*\([^)]*\)\s*$/, "").trim() || assigned_to;
+    assigned_to =
+      assigned_to.replace(/\s*\([^)]*\)\s*$/, "").trim() || assigned_to;
   }
 
   const noteBits: string[] = [];
-  const flags = addressPart.match(/\/\s*(Ser|Meter|Service)[^\s-]*/gi);
-  if (flags) noteBits.push(...flags.map((f) => f.trim()));
   const paren = text.match(/\(([^)]+)\)/g);
   if (paren) noteBits.push(...paren);
 
-  const address = addressPart
-    .replace(/\/\s*(Ser|Meter|Service)\b[^/]*/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  // Keep / Ser and / Meter on the address — one board cell, one job
+  let address = addressPart.replace(/\s+/g, " ").trim();
+  if (has_service && !/\/\s*ser(vice)?\b/i.test(address)) {
+    address = `${address} / Ser`;
+  }
+  if (has_meter && !/\/\s*meter\b/i.test(address)) {
+    address = `${address} / Meter`;
+  }
 
   if (!address || SKIP_CELL.test(address)) return null;
-  if (address.length < 3) return null;
+  if (address.replace(/\/\s*(Ser|Meter|Service)\b/gi, "").trim().length < 3) {
+    return null;
+  }
 
-  // / Ser cells are almost always rough + service; default base kind if color/prefix missing
+  // / Ser cells are almost always rough when color/prefix missing
   if (has_service && work_kind === "unknown") work_kind = "rough";
 
   return {
@@ -410,7 +415,7 @@ export function parseJobBoardGrid(
       const sheets_week = sheetTitle.trim();
       const baseKey = `${sheets_week}:${cell_ref}`;
 
-      // Base job (rough/trim). / Ser also creates a separate service payout line.
+      // One board cell → one job. Keep "/ Ser" or "/ Meter" on the address.
       jobs.push({
         sheets_row_key: `${baseKey}:${parsed.work_kind}`,
         sheets_week,
@@ -420,29 +425,10 @@ export function parseJobBoardGrid(
         crew_lead: crewLead,
         assigned_to: parsed.assigned_to,
         work_kind: parsed.work_kind,
-        notes: parsed.has_service
-          ? [parsed.notes, "Includes separate service line"].filter(Boolean).join(" · ")
-          : parsed.notes,
+        notes: parsed.notes,
         cell_ref,
         raw,
       });
-
-      if (parsed.has_service) {
-        const serviceAddress = `${parsed.address} / Ser`;
-        jobs.push({
-          sheets_row_key: `${baseKey}:service`,
-          sheets_week,
-          title: serviceAddress,
-          site_address: serviceAddress,
-          work_date,
-          crew_lead: crewLead,
-          assigned_to: parsed.assigned_to,
-          work_kind: "service",
-          notes: "Service payout (separate from rough)",
-          cell_ref,
-          raw,
-        });
-      }
     }
   });
 

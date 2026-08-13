@@ -1,10 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
+import { getToken } from "next-auth/jwt";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAdminEmail } from "@/lib/admin-auth";
-import {
-  ADMIN_SESSION_COOKIE,
-  verifyAdminSessionToken,
-} from "@/lib/admin-session";
 
 export async function updateSession(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -12,10 +9,21 @@ export async function updateSession(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request });
 
-  const zohoSession = await verifyAdminSessionToken(
-    request.cookies.get(ADMIN_SESSION_COOKIE)?.value,
+  const secureCookie =
+    request.nextUrl.protocol === "https:" ||
+    process.env.NODE_ENV === "production";
+  const token = await getToken({
+    req: request,
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    secureCookie,
+  });
+  const hasNextAuthAdmin = Boolean(
+    token &&
+      (token.isAdmin === true ||
+        token.role === "admin" ||
+        token.role === "super_admin" ||
+        isAdminEmail(token.email as string | undefined)),
   );
-  const hasZohoAdmin = Boolean(zohoSession && isAdminEmail(zohoSession.email));
 
   let supabaseUserEmail: string | null = null;
 
@@ -44,18 +52,17 @@ export async function updateSession(request: NextRequest) {
   }
 
   const hasSupabaseAdmin = isAdminEmail(supabaseUserEmail);
-  const isAuthedAdmin = hasZohoAdmin || hasSupabaseAdmin;
+  const isAuthedAdmin = hasNextAuthAdmin || hasSupabaseAdmin;
 
   const pathname = request.nextUrl.pathname;
   const isAdminRoute = pathname.startsWith("/admin");
   const isLoginRoute = pathname === "/admin/login";
   const isAdminApi = pathname.startsWith("/api/admin");
   const isPublicAdminApi =
+    pathname.startsWith("/api/admin/auth/") ||
     pathname === "/api/admin/request-link" ||
     pathname === "/api/admin/password-login" ||
     pathname === "/api/admin/bootstrap-password" ||
-    pathname === "/api/admin/zoho/start" ||
-    pathname === "/api/admin/zoho/callback" ||
     pathname === "/api/admin/logout" ||
     pathname === "/api/admin/sheets/sync";
 
@@ -67,6 +74,11 @@ export async function updateSession(request: NextRequest) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = "/admin/login";
       loginUrl.searchParams.set("next", pathname);
+      // Signed in, but not an admin (env allowlist or app_users role)
+      if (token?.email) {
+        loginUrl.searchParams.set("error", "unauthorized");
+        loginUrl.searchParams.set("email", String(token.email));
+      }
       return NextResponse.redirect(loginUrl);
     }
   }

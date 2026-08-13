@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Logo } from "@/components/Logo";
-import { Footer } from "@/components/Footer";
+import { BrandMark } from "@/components/BrandMark";
+import { PoweredBy } from "@/components/PoweredBy";
 import { JoinForm } from "@/components/JoinForm";
 import { positions } from "@/lib/join-positions";
 
 export const metadata: Metadata = {
-  title: "Join the Crew | Lantana Electric LLC",
+  title: "Join the Crew | Sub-Dispatch",
   description:
-    "Lantana Electric is looking for skilled electricians and apprentices for residential rough-in and trim work across Central Texas. Apply today.",
+    "Looking for skilled electricians and apprentices for residential rough-in and trim work. Apply today.",
 };
 
 const perks = [
@@ -54,8 +54,8 @@ export default function JoinPage() {
     <>
       <header className="fixed top-0 right-0 left-0 z-50 border-b border-border-subtle bg-bg-base/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <a href="/" className="shrink-0 transition-opacity hover:opacity-90" aria-label="Lantana Electric — Home">
-            <Logo />
+          <a href="/" className="shrink-0 transition-opacity hover:opacity-90" aria-label="Sub-Dispatch — Home">
+            <BrandMark className="text-xl" />
           </a>
           <a
             href="/"
@@ -77,7 +77,7 @@ export default function JoinPage() {
             </p>
             <h1 className="font-display text-4xl font-bold tracking-tight text-text-primary md:text-5xl">
               Join the{" "}
-              <span className="text-amber-600 dark:text-amber-400">Lantana crew.</span>
+              <span className="text-amber-600 dark:text-amber-400">crew.</span>
             </h1>
             <p className="mt-6 text-lg leading-relaxed text-text-secondary">
               We&apos;re looking for electricians who show up, do clean work, and want to be
@@ -154,7 +154,9 @@ export default function JoinPage() {
         </div>
       </main>
 
-      <Footer />
+      <footer className="border-t border-border-subtle py-8">
+        <PoweredBy />
+      </footer>
     </>
   );
 }

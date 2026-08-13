@@ -14,8 +14,16 @@ import {
   todayIsoChicago,
   type ParsedBoardJob,
 } from "@/lib/sheets/job-board-parse";
-import { isLantanaJob } from "@/lib/sheets/worker-map";
+import {
+  buildCrewLookupFromBoard,
+  parseTransferLogRows,
+} from "@/lib/sheets/transfer-log";
 import { notifyNewBoardJobs } from "@/lib/push/send";
+import {
+  boardCellKey,
+  duplicateJobIdsToCancel,
+  preferBoardJob,
+} from "@/lib/board-dedupe";
 
 export type SyncJobBoardResult = {
   ok: true;
@@ -23,6 +31,7 @@ export type SyncJobBoardResult = {
   upserted: number;
   cancelled: number;
   parsed: number;
+  fromTransferLog?: number;
   notified?: number;
 };
 
@@ -33,21 +42,69 @@ function statusForWorkDate(workDate: string) {
 }
 
 function toRowFields(job: ParsedBoardJob) {
+  const hasSer = /\/\s*ser(vice)?\b/i.test(job.site_address);
+  let work_kind = job.work_kind;
+  let site_address = job.site_address;
+  // Never store a separate "service" job — it's rough with / Ser on the address
+  if (work_kind === "service") {
+    work_kind = "rough";
+    if (!hasSer && site_address) site_address = `${site_address} / Ser`;
+  }
+  const sheets_row_key = job.sheets_row_key.replace(/:service$/i, ":rough");
   return {
-    title: job.title,
-    site_address: job.site_address,
+    title: site_address || job.title,
+    site_address,
     client: job.crew_lead,
     job_type: "outgoing" as const,
     start_date: job.work_date,
     work_date: job.work_date,
     crew_lead: job.crew_lead,
     assigned_to: job.assigned_to,
-    work_kind: job.work_kind,
+    work_kind,
     notes: job.notes,
-    sheets_row_key: job.sheets_row_key,
+    sheets_row_key,
     sheets_week: job.sheets_week,
     source: "google_sheets" as const,
   };
+}
+
+/** One parsed job per board cell — keep / Ser when present. */
+function dedupeParsedJobs(jobs: ParsedBoardJob[]): ParsedBoardJob[] {
+  const byCell = new Map<string, ParsedBoardJob>();
+  for (const job of jobs) {
+    const cell = boardCellKey(job.sheets_row_key) || job.sheets_row_key;
+    const prev = byCell.get(cell);
+    if (!prev) {
+      byCell.set(cell, job);
+      continue;
+    }
+    const winner = preferBoardJob(
+      {
+        site_address: prev.site_address,
+        assigned_to: prev.assigned_to,
+        work_kind: prev.work_kind,
+        sheets_row_key: prev.sheets_row_key,
+      },
+      {
+        site_address: job.site_address,
+        assigned_to: job.assigned_to,
+        work_kind: job.work_kind,
+        sheets_row_key: job.sheets_row_key,
+      },
+    );
+    byCell.set(cell, winner.sheets_row_key === job.sheets_row_key ? job : prev);
+  }
+  return [...byCell.values()].map((job) => {
+    if (job.work_kind !== "service") return job;
+    const addr = job.site_address;
+    return {
+      ...job,
+      work_kind: "rough" as const,
+      site_address: /\/\s*ser/i.test(addr) ? addr : `${addr} / Ser`,
+      title: /\/\s*ser/i.test(addr) ? addr : `${addr} / Ser`,
+      sheets_row_key: job.sheets_row_key.replace(/:service$/i, ":rough"),
+    };
+  });
 }
 
 async function enrichFromTransferLog(
@@ -57,12 +114,20 @@ async function enrichFromTransferLog(
   if (jobs.length === 0) return jobs;
 
   try {
-    const values = await getSheetValues(spreadsheetId, "Transfer Log", "B1:F2000");
+    const values = await getSheetValues(
+      spreadsheetId,
+      "Transfer Log",
+      "A1:G5000",
+    );
     const byAddress = new Map<string, "rough" | "trim">();
 
-    for (const row of values) {
-      const kind = (row[2] ?? "").trim().toLowerCase();
-      const address = (row[3] ?? "").trim().toLowerCase();
+    const start = values[0]?.[0]?.toLowerCase().includes("transferred")
+      ? 1
+      : 0;
+    for (let i = start; i < values.length; i++) {
+      const row = values[i] ?? [];
+      const kind = (row[3] ?? "").trim().toLowerCase();
+      const address = (row[4] ?? "").trim().toLowerCase();
       if (!address) continue;
       if (kind === "rough" || kind === "trim") {
         byAddress.set(address, kind);
@@ -101,12 +166,23 @@ function pickCurrentWeekSheets(sheets: { title: string }[]) {
 
   if (titles.size === 0) {
     const dated = sheets
-      .filter((s) => isJobBoardSheet(s.title) && !/^weekly board$/i.test(s.title.trim()))
+      .filter(
+        (s) =>
+          isJobBoardSheet(s.title) &&
+          !/^weekly board$/i.test(s.title.trim()),
+      )
       .map((s) => s.title);
     if (dated.length) titles.add(dated[dated.length - 1]);
   }
 
   return [...titles];
+}
+
+function mergeJobs(primary: ParsedBoardJob[], secondary: ParsedBoardJob[]) {
+  const byKey = new Map<string, ParsedBoardJob>();
+  for (const job of secondary) byKey.set(job.sheets_row_key, job);
+  for (const job of primary) byKey.set(job.sheets_row_key, job);
+  return [...byKey.values()];
 }
 
 export async function syncJobBoard(
@@ -130,24 +206,77 @@ export async function syncJobBoard(
 
   let allJobs: ParsedBoardJob[] = [];
   const sheetsSynced: string[] = [];
+  const crewLookup = new Map<string, string>();
 
-  for (const title of sheetTitles) {
-    const { values, colors } = await getSheetGridWithColors(spreadsheetId, title, "A1:G80");
-    allJobs = allJobs.concat(parseJobBoardGrid(title, values, null, colors));
-    sheetsSynced.push(title);
+  if (mode === "all") {
+    // Fast path: Transfer Log is the historical source of truth.
+    // Pull supervisor names from column A of each week tab (no color grid).
+    console.info("[board sync] backfill mode: Transfer Log + crew columns");
+    for (const title of sheetTitles) {
+      try {
+        console.info(`[board sync] crew column: ${title}`);
+        const values = await getSheetValues(spreadsheetId, title, "A1:A80");
+        for (const [k, v] of buildCrewLookupFromBoard(title, values)) {
+          crewLookup.set(k, v);
+        }
+        sheetsSynced.push(title);
+      } catch (err) {
+        console.error(`[board sync] skip tab ${title}:`, err);
+      }
+    }
+
+    const logRows = await getSheetValues(
+      spreadsheetId,
+      "Transfer Log",
+      "A1:G5000",
+    );
+    const logJobs = parseTransferLogRows(logRows, crewLookup);
+    allJobs = logJobs;
+    console.info(
+      `[board sync] Transfer Log → ${logJobs.length} jobs across ${sheetsSynced.length} weeks`,
+    );
+  } else {
+    for (const title of sheetTitles) {
+      console.info(`[board sync] parsing tab: ${title}`);
+      const { values, colors } = await getSheetGridWithColors(
+        spreadsheetId,
+        title,
+        "A1:G80",
+      );
+      allJobs = allJobs.concat(parseJobBoardGrid(title, values, null, colors));
+      for (const [k, v] of buildCrewLookupFromBoard(title, values)) {
+        crewLookup.set(k, v);
+      }
+      sheetsSynced.push(title);
+    }
+
+    try {
+      console.info("[board sync] merging Transfer Log gaps…");
+      const logRows = await getSheetValues(
+        spreadsheetId,
+        "Transfer Log",
+        "A1:G5000",
+      );
+      const logJobs = parseTransferLogRows(logRows, crewLookup);
+      allJobs = mergeJobs(allJobs, logJobs);
+      console.info(`[board sync] Transfer Log rows available: ${logJobs.length}`);
+    } catch (err) {
+      console.error("Transfer Log parse failed:", err);
+    }
   }
+
+  const fromTransferLog = mode === "all" ? allJobs.length : undefined;
 
   allJobs = await enrichFromTransferLog(spreadsheetId, allJobs);
 
-  // Only Lantana Electric jobs (worker → invoice tab "Lantana").
-  // Keep rough, trim, and service (Draw pays service as separate lines).
   allJobs = allJobs.filter(
     (job) =>
-      isLantanaJob(job.assigned_to) &&
-      (job.work_kind === "rough" ||
-        job.work_kind === "trim" ||
-        job.work_kind === "service"),
+      job.work_kind === "rough" ||
+      job.work_kind === "trim" ||
+      job.work_kind === "service" ||
+      job.work_kind === "unknown",
   );
+  allJobs = dedupeParsedJobs(allJobs);
 
   let upserted = 0;
   const insertedJobs: {
@@ -159,35 +288,52 @@ export async function syncJobBoard(
   }[] = [];
 
   if (allJobs.length > 0) {
-    const keys = allJobs.map((j) => j.sheets_row_key);
-    const existingRows: { id: string; sheets_row_key: string; status: string }[] = [];
+    const weeks = [...new Set(allJobs.map((j) => j.sheets_week))];
+    const existingRows: {
+      id: string;
+      sheets_row_key: string;
+      status: string;
+    }[] = [];
 
-    for (let i = 0; i < keys.length; i += 200) {
-      const slice = keys.slice(i, i + 200);
+    for (const week of weeks) {
       const { data: existing, error: existingError } = await supabase
         .from("jobs")
         .select("id, sheets_row_key, status")
-        .in("sheets_row_key", slice);
+        .eq("source", "google_sheets")
+        .eq("sheets_week", week);
       if (existingError) throw new Error(existingError.message);
       existingRows.push(...((existing ?? []) as typeof existingRows));
     }
 
-    const byKey = new Map(existingRows.map((row) => [row.sheets_row_key, row]));
+    const byKey = new Map(
+      existingRows.map((row) => [row.sheets_row_key, row]),
+    );
+    const byCell = new Map<string, (typeof existingRows)[number]>();
+    for (const row of existingRows) {
+      const cell = boardCellKey(row.sheets_row_key);
+      if (cell && !byCell.has(cell)) byCell.set(cell, row);
+    }
 
     const toInsert = [];
     const toUpdate = [];
+    const usedIds = new Set<string>();
 
     for (const job of allJobs) {
       const fields = toRowFields(job);
-      const prev = byKey.get(job.sheets_row_key);
-      if (!prev) {
+      const prev =
+        byKey.get(job.sheets_row_key) ||
+        byCell.get(boardCellKey(job.sheets_row_key));
+      if (!prev || usedIds.has(prev.id)) {
         toInsert.push({
           ...fields,
           status: statusForWorkDate(job.work_date),
         });
       } else {
+        usedIds.add(prev.id);
         const nextStatus =
-          prev.status === "cancelled" ? statusForWorkDate(job.work_date) : undefined;
+          prev.status === "cancelled"
+            ? statusForWorkDate(job.work_date)
+            : undefined;
         toUpdate.push({
           id: prev.id,
           ...fields,
@@ -212,7 +358,10 @@ export async function syncJobBoard(
       await Promise.all(
         chunk.map(async (row) => {
           const { id, ...rest } = row;
-          const { error } = await supabase.from("jobs").update(rest).eq("id", id);
+          const { error } = await supabase
+            .from("jobs")
+            .update(rest)
+            .eq("id", id);
           if (error) throw new Error(error.message);
         }),
       );
@@ -221,58 +370,99 @@ export async function syncJobBoard(
   }
 
   let cancelled = 0;
-  for (const week of sheetsSynced) {
-    const keys = allJobs.filter((j) => j.sheets_week === week).map((j) => j.sheets_row_key);
-    const { data: existing, error: listError } = await supabase
-      .from("jobs")
-      .select("id, sheets_row_key, assigned_to")
-      .eq("source", "google_sheets")
-      .eq("sheets_week", week)
-      .neq("status", "cancelled");
-
-    if (listError) throw new Error(listError.message);
-
-    const keySet = new Set(keys);
-    const toCancel = (existing ?? []).filter(
-      (row) =>
-        (row.sheets_row_key && !keySet.has(row.sheets_row_key)) ||
-        !isLantanaJob(row.assigned_to),
-    );
-
-    if (toCancel.length) {
-      const { error: cancelError } = await supabase
-        .from("jobs")
-        .update({ status: "cancelled" })
-        .in(
-          "id",
-          toCancel.map((r) => r.id),
+  if (mode !== "all") {
+    for (const week of sheetsSynced) {
+      const weekJobs = allJobs.filter((j) => j.sheets_week === week);
+      const parsedCells = new Set(
+        weekJobs.map((j) => boardCellKey(j.sheets_row_key)).filter(Boolean),
+      );
+      if (parsedCells.size === 0) {
+        console.warn(
+          `[board sync] skip cancel for ${week}: parse returned 0 cells`,
         );
-      if (cancelError) throw new Error(cancelError.message);
-      cancelled += toCancel.length;
-    }
-  }
+        continue;
+      }
 
-  // Also hide any leftover non-Lantana board jobs from older syncs (other weeks).
-  const { data: foreignCrew, error: foreignError } = await supabase
-    .from("jobs")
-    .select("id, assigned_to")
-    .eq("source", "google_sheets")
-    .neq("status", "cancelled");
-  if (foreignError) throw new Error(foreignError.message);
-
-  const foreignIds = (foreignCrew ?? [])
-    .filter((row) => !isLantanaJob(row.assigned_to))
-    .map((row) => row.id);
-  if (foreignIds.length) {
-    for (let i = 0; i < foreignIds.length; i += 100) {
-      const chunk = foreignIds.slice(i, i + 100);
-      const { error } = await supabase
+      const { data: existing, error: listError } = await supabase
         .from("jobs")
-        .update({ status: "cancelled" })
-        .in("id", chunk);
-      if (error) throw new Error(error.message);
+        .select("id, sheets_row_key, assigned_to, work_date, status")
+        .eq("source", "google_sheets")
+        .eq("sheets_week", week)
+        .neq("status", "cancelled");
+
+      if (listError) throw new Error(listError.message);
+
+      const toCancel = (existing ?? []).filter((row) => {
+        const cell = boardCellKey(row.sheets_row_key);
+        return cell && !parsedCells.has(cell);
+      });
+
+      // Safety: a sparse parse must not wipe the week (was leaving only Lantana/Leo jobs)
+      const existingCount = existing?.length ?? 0;
+      if (
+        existingCount >= 8 &&
+        toCancel.length >= Math.ceil(existingCount * 0.5) &&
+        weekJobs.length < existingCount * 0.5
+      ) {
+        console.warn(
+          `[board sync] skip mass cancel for ${week}: would cancel ${toCancel.length}/${existingCount} but only parsed ${weekJobs.length}`,
+        );
+        continue;
+      }
+
+      if (toCancel.length) {
+        const { error: cancelError } = await supabase
+          .from("jobs")
+          .update({ status: "cancelled" })
+          .in(
+            "id",
+            toCancel.map((r) => r.id),
+          );
+        if (cancelError) throw new Error(cancelError.message);
+        cancelled += toCancel.length;
+      }
+
+      // Collapse legacy rough + service twins for the same cell
+      const { data: remaining, error: remainError } = await supabase
+        .from("jobs")
+        .select(
+          "id, site_address, title, assigned_to, work_kind, work_date, crew_lead, sheets_row_key, status",
+        )
+        .eq("source", "google_sheets")
+        .eq("sheets_week", week)
+        .neq("status", "cancelled");
+      if (remainError) throw new Error(remainError.message);
+
+      const twinIds = duplicateJobIdsToCancel(remaining ?? []);
+      if (twinIds.length) {
+        const { error: twinError } = await supabase
+          .from("jobs")
+          .update({ status: "cancelled" })
+          .in("id", twinIds);
+        if (twinError) throw new Error(twinError.message);
+        cancelled += twinIds.length;
+      }
+
+      // Normalize any leftover service rows to rough + / Ser
+      for (const row of remaining ?? []) {
+        if (twinIds.includes(row.id)) continue;
+        if (row.work_kind !== "service") continue;
+        const addr = row.site_address || row.title || "";
+        const site_address = /\/\s*ser/i.test(addr) ? addr : `${addr} / Ser`;
+        await supabase
+          .from("jobs")
+          .update({
+            work_kind: "rough",
+            site_address,
+            title: site_address,
+            sheets_row_key: String(row.sheets_row_key || "").replace(
+              /:service$/i,
+              ":rough",
+            ),
+          })
+          .eq("id", row.id);
+      }
     }
-    cancelled += foreignIds.length;
   }
 
   let notified = 0;
@@ -291,6 +481,7 @@ export async function syncJobBoard(
     upserted,
     cancelled,
     parsed: allJobs.length,
+    fromTransferLog,
     notified,
   };
 }
