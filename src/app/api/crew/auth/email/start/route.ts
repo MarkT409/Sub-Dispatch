@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { createServiceClient, hasServiceRoleEnv } from "@/lib/supabase/service";
+import { findCrewByEmail, isValidEmail } from "@/lib/email-otp";
 import {
-  allowEmailOtpDevCode,
-  createEmailOtp,
-  findCrewByEmail,
-  isValidEmail,
-  sendOtpEmail,
-} from "@/lib/email-otp";
+  allowMagicLinkDevReveal,
+  createCrewMagicLink,
+  sendMagicLinkEmail,
+} from "@/lib/crew-magic-link";
 
 export async function POST(request: Request) {
   if (!hasServiceRoleEnv()) {
@@ -40,9 +39,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { code, email } = await createEmailOtp(supabase, match.email);
-    const mail = await sendOtpEmail(email, code);
-    const allowDev = !mail.sent && allowEmailOtpDevCode();
+    const { url, token } = await createCrewMagicLink(
+      supabase,
+      "email",
+      match.email,
+    );
+    const mail = await sendMagicLinkEmail(match.email, url, match.locale);
+    const allowDev = !mail.sent && allowMagicLinkDevReveal();
 
     if (!mail.sent && !allowDev) {
       return NextResponse.json(
@@ -56,15 +59,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      email,
+      email: match.email,
       name: match.name,
-      emailSent: mail.sent,
-      ...(allowDev ? { devCode: code } : {}),
+      linkSent: mail.sent,
+      ...(allowDev ? { devLink: url, devToken: token } : {}),
     });
   } catch (err) {
-    console.error("crew email OTP start failed:", err);
+    console.error("crew email magic link start failed:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Could not send code" },
+      { error: err instanceof Error ? err.message : "Could not send link" },
       { status: 500 },
     );
   }

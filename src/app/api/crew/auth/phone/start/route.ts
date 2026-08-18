@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { createServiceClient, hasServiceRoleEnv } from "@/lib/supabase/service";
 import {
-  createPhoneOtp,
   findRosterByPhone,
   formatPhoneDisplay,
-  isTwilioConfigured,
-  sendOtpSms,
   toE164,
 } from "@/lib/crew-phone-auth";
+import {
+  allowMagicLinkDevReveal,
+  createCrewMagicLink,
+  sendMagicLinkSms,
+} from "@/lib/crew-magic-link";
 
 export async function POST(request: Request) {
   if (!hasServiceRoleEnv()) {
@@ -42,15 +44,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { code } = await createPhoneOtp(supabase, phoneE164);
-    const sms = await sendOtpSms(phoneE164, code);
+    const { url, token } = await createCrewMagicLink(
+      supabase,
+      "phone",
+      phoneE164,
+    );
+    const sms = await sendMagicLinkSms(phoneE164, url);
+    const allowDev = !sms.sent && allowMagicLinkDevReveal();
 
-    const allowDevCode =
-      !sms.sent &&
-      (process.env.CREW_PHONE_OTP_DEV === "1" ||
-        process.env.NODE_ENV === "development");
-
-    if (!sms.sent && !allowDevCode) {
+    if (!sms.sent && !allowDev) {
       return NextResponse.json(
         {
           error:
@@ -64,13 +66,13 @@ export async function POST(request: Request) {
       ok: true,
       phoneDisplay: formatPhoneDisplay(match.phone),
       name: match.name,
-      smsSent: sms.sent,
-      ...(allowDevCode ? { devCode: code } : {}),
+      linkSent: sms.sent,
+      ...(allowDev ? { devLink: url, devToken: token } : {}),
     });
   } catch (err) {
-    console.error("phone OTP start failed:", err);
+    console.error("phone magic link start failed:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Could not send code" },
+      { error: err instanceof Error ? err.message : "Could not send link" },
       { status: 500 },
     );
   }

@@ -6,7 +6,7 @@ import { PoweredBy } from "@/components/PoweredBy";
 import { useState } from "react";
 import { toast } from "sonner";
 
-type Step = "choose" | "phone" | "email" | "code";
+type Step = "choose" | "phone" | "email" | "sent";
 type Channel = "phone" | "email";
 
 export default function CrewLoginForm({
@@ -25,10 +25,9 @@ export default function CrewLoginForm({
   const [isLoading, setIsLoading] = useState(false);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
   const [destinationDisplay, setDestinationDisplay] = useState("");
   const [matchedName, setMatchedName] = useState("");
-  const [devCode, setDevCode] = useState<string | null>(null);
+  const [devLink, setDevLink] = useState<string | null>(null);
 
   const handleGoogle = async () => {
     if (!googleConfigured) {
@@ -57,14 +56,14 @@ export default function CrewLoginForm({
     }
   };
 
-  const handleSendCode = async () => {
+  const handleSendLink = async () => {
     if (!supabaseConfigured) {
       toast.error("Supabase is not configured yet.");
       return;
     }
 
     setIsLoading(true);
-    setDevCode(null);
+    setDevLink(null);
     try {
       if (channel === "phone") {
         const trimmed = phone.trim();
@@ -79,16 +78,16 @@ export default function CrewLoginForm({
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          toast.error(data.error || "Could not send code");
+          toast.error(data.error || "Could not send link");
           return;
         }
         setDestinationDisplay(data.phoneDisplay || trimmed);
         setMatchedName(data.name || "");
-        if (data.devCode) {
-          setDevCode(data.devCode);
-          toast.message(`Dev code: ${data.devCode}`);
-        } else if (data.smsSent) {
-          toast.success("Code sent by text");
+        if (data.devLink) {
+          setDevLink(data.devLink);
+          toast.message("Dev mode — open the link below");
+        } else if (data.linkSent) {
+          toast.success("Sign-in link texted to you");
         }
       } else {
         const trimmed = email.trim();
@@ -103,63 +102,21 @@ export default function CrewLoginForm({
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          toast.error(data.error || "Could not send code");
+          toast.error(data.error || "Could not send link");
           return;
         }
         setDestinationDisplay(data.email || trimmed);
         setMatchedName(data.name || "");
-        if (data.devCode) {
-          setDevCode(data.devCode);
-          toast.message(`Dev code: ${data.devCode}`);
-        } else if (data.emailSent) {
-          toast.success("Code sent to your email");
+        if (data.devLink) {
+          setDevLink(data.devLink);
+          toast.message("Dev mode — open the link below");
+        } else if (data.linkSent) {
+          toast.success("Sign-in link emailed to you");
         }
       }
-      setStep("code");
+      setStep("sent");
     } catch {
-      toast.error("Could not send code");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    const trimmedCode = code.trim();
-    if (!/^\d{6}$/.test(trimmedCode)) {
-      toast.error("Enter the 6-digit code");
-      return;
-    }
-
-    setIsLoading(true);
-    document.cookie = "auth_intent=crew; Path=/; Max-Age=600; SameSite=Lax";
-    try {
-      const result =
-        channel === "phone"
-          ? await signIn("phone", {
-              phone: phone.trim(),
-              code: trimmedCode,
-              callbackUrl: "/crew",
-              redirect: false,
-            })
-          : await signIn("email", {
-              email: email.trim(),
-              code: trimmedCode,
-              callbackUrl: "/crew",
-              redirect: false,
-            });
-
-      if (result?.error) {
-        toast.error("Incorrect or expired code. Try again.");
-        return;
-      }
-      if (result?.url) {
-        window.location.href = result.url;
-        return;
-      }
-      window.location.href = "/crew";
-    } catch (error) {
-      console.error("Sign-in error:", error);
-      toast.error("Sign-in failed. Please try again.");
+      toast.error("Could not send sign-in link");
     } finally {
       setIsLoading(false);
     }
@@ -176,10 +133,10 @@ export default function CrewLoginForm({
           Crew Portal
         </h1>
         <p className="mb-8 text-center text-text-muted">
-          {step === "code"
+          {step === "sent"
             ? matchedName
-              ? `Welcome, ${matchedName}. Enter the code we sent.`
-              : "Enter the code we sent"
+              ? `Welcome, ${matchedName}. Open the link we sent to sign in.`
+              : "Open the link we sent to sign in"
             : "Sign in to see your current and previous jobs"}
         </p>
 
@@ -283,14 +240,14 @@ export default function CrewLoginForm({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      void handleSendCode();
+                      void handleSendLink();
                     }
                   }}
                   placeholder="(210) 555-0100"
                   className="mt-1.5 w-full rounded-lg border border-border-default bg-bg-input px-3 py-2.5 text-sm tabular-nums"
                 />
                 <p className="mt-2 text-xs text-text-muted">
-                  Use the number on file in the Crew list.
+                  We’ll text a sign-in link to the number on your Crew card.
                 </p>
               </div>
             ) : (
@@ -304,20 +261,20 @@ export default function CrewLoginForm({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      void handleSendCode();
+                      void handleSendLink();
                     }
                   }}
                   placeholder="you@company.com"
                   className="mt-1.5 w-full rounded-lg border border-border-default bg-bg-input px-3 py-2.5 text-sm"
                 />
                 <p className="mt-2 text-xs text-text-muted">
-                  Use the email on file in the Crew list.
+                  We’ll email a sign-in link to the address on your Crew card.
                 </p>
               </div>
             )}
             <button
               type="button"
-              onClick={() => void handleSendCode()}
+              onClick={() => void handleSendLink()}
               disabled={
                 isLoading ||
                 (step === "phone"
@@ -329,8 +286,8 @@ export default function CrewLoginForm({
               {isLoading
                 ? "Sending…"
                 : step === "phone"
-                  ? "Text me a code"
-                  : "Email me a code"}
+                  ? "Text me a sign-in link"
+                  : "Email me a sign-in link"}
             </button>
             <button
               type="button"
@@ -343,54 +300,29 @@ export default function CrewLoginForm({
         ) : (
           <div className="space-y-4">
             <p className="text-center text-sm text-text-secondary">
-              Code sent to{" "}
+              Link sent to{" "}
               <span className="font-medium text-text-primary">
                 {destinationDisplay ||
                   (channel === "phone" ? phone : email)}
               </span>
             </p>
-            {devCode && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-center text-sm text-amber-800 dark:text-amber-300">
-                Dev mode — use code{" "}
-                <span className="font-mono font-bold">{devCode}</span>
-              </div>
-            )}
-            <div>
-              <label className="block text-sm text-text-muted">
-                6-digit code
-              </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                value={code}
-                onChange={(e) =>
-                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void handleVerifyCode();
-                  }
-                }}
-                placeholder="123456"
-                className="mt-1.5 w-full rounded-lg border border-border-default bg-bg-input px-3 py-2.5 text-center font-mono text-lg tracking-[0.3em]"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => void handleVerifyCode()}
-              disabled={isLoading || code.length !== 6}
-              className="flex w-full items-center justify-center rounded-lg bg-lime-400 px-4 py-3 text-sm font-semibold text-black hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isLoading ? "Signing in…" : "Sign in"}
-            </button>
+            <p className="text-center text-xs text-text-muted">
+              Open the link on this phone or computer to finish signing in. It
+              expires in 20 minutes.
+            </p>
+            {devLink ? (
+              <a
+                href={devLink}
+                className="block break-all rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-3 text-center text-sm font-medium text-amber-800 hover:underline dark:text-amber-300"
+              >
+                Dev mode — open sign-in link
+              </a>
+            ) : null}
             <div className="flex justify-between gap-3 text-sm">
               <button
                 type="button"
                 onClick={() => {
-                  setCode("");
-                  setDevCode(null);
+                  setDevLink(null);
                   setStep(channel);
                 }}
                 className="text-text-muted hover:text-text-primary"
@@ -399,11 +331,11 @@ export default function CrewLoginForm({
               </button>
               <button
                 type="button"
-                onClick={() => void handleSendCode()}
+                onClick={() => void handleSendLink()}
                 disabled={isLoading}
                 className="font-medium text-amber-700 hover:underline dark:text-amber-400"
               >
-                Resend code
+                Resend link
               </button>
             </div>
           </div>

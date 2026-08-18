@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { toast } from "sonner";
+import { AdminMessagesBubble } from "@/components/admin/AdminMessagesBubble";
 import { EnableNotificationsButton } from "@/components/admin/EnableNotificationsButton";
 import { BrandMark } from "@/components/BrandMark";
 import { PoweredBy } from "@/components/PoweredBy";
@@ -42,7 +43,7 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-bg-base text-text-primary">
-      <header className="border-b border-border-subtle bg-bg-raised/80 backdrop-blur-md">
+      <header className="relative z-50 border-b border-border-subtle bg-bg-raised/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-6">
             <Link href="/admin" className="shrink-0">
@@ -80,6 +81,7 @@ export function AdminShell({
                     : " · view"}
               </span>
             )}
+            {isSuperAdmin ? <AdminMessagesBubble /> : null}
             <EnableNotificationsButton />
             <ThemeToggle />
             <button

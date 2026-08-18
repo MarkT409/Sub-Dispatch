@@ -136,23 +136,31 @@ export async function requireBoardViewer() {
   }
 
   const session = (await auth()) as SessionLike | null;
-  if (!session?.user?.email) {
+  if (!session?.user) {
     return denied();
   }
 
+  const email = session.user.email?.trim() || null;
   const isAdmin =
-    Boolean(session.user.isAdmin) || isAdminEmail(session.user.email);
+    Boolean(session.user.isAdmin) ||
+    (email ? isAdminEmail(email) : false);
   const isCrew = Boolean(session.user.crewMemberId);
 
   if (!isAdmin && !isCrew) {
     return denied();
   }
 
+  const id =
+    session.user.id ||
+    session.user.crewMemberId ||
+    email ||
+    "crew";
+
   return {
     supabase: createServiceClient(),
     user: {
-      email: session.user.email,
-      id: session.user.id ?? session.user.email,
+      email: email || `${id}@crew.local`,
+      id,
     },
     session,
     canWrite: Boolean(session.user.isSuperAdmin || session.user.boardWrite),

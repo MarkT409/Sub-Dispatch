@@ -36,6 +36,7 @@ export function JobBoardCell({
   dense = false,
   shaking = false,
   suggestions = [],
+  crewLead,
   onCommit,
 }: {
   job?: BoardJob;
@@ -43,6 +44,7 @@ export function JobBoardCell({
   dense?: boolean;
   shaking?: boolean;
   suggestions?: string[];
+  crewLead?: string;
   onCommit: (raw: string, existing?: BoardJob) => Promise<void>;
 }) {
   const display = job ? formatBoardCellDisplay(job) : "";
@@ -77,7 +79,11 @@ export function JobBoardCell({
     ? "text-xs sm:text-[13px]"
     : "text-[13px] sm:text-sm";
   const minH = dense ? "min-h-9" : "min-h-11";
-  const color = boardKindColor(job?.work_kind);
+  const color = boardKindColor(
+    job?.work_kind,
+    job?.site_address || job?.title,
+    crewLead,
+  );
 
   function pickSuggestion(name: string) {
     const next = applyAssigneeSuggestion(value, name);
@@ -94,7 +100,9 @@ export function JobBoardCell({
     const next = value.replace(/\s+/g, " ").trim();
     const prev = display.trim();
     if (next === prev) {
-      const parsed = parseBoardTyping(value, job?.work_kind);
+      const parsed = parseBoardTyping(value, job?.work_kind, {
+        allowFreeform: true,
+      });
       if (parsed && parsed !== "clear" && parsed.display !== value) {
         setValue(parsed.display);
       }
@@ -104,7 +112,9 @@ export function JobBoardCell({
     setSaving(true);
     try {
       await onCommit(value, job);
-      const parsed = parseBoardTyping(value, job?.work_kind);
+      const parsed = parseBoardTyping(value, job?.work_kind, {
+        allowFreeform: true,
+      });
       if (parsed && parsed !== "clear") {
         setValue(parsed.display);
       } else if (parsed === "clear") {

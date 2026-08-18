@@ -1,6 +1,8 @@
 import { createHash, randomInt, timingSafeEqual } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeEmail, isAdminEmail } from "@/lib/admin-auth";
+import { sendBrandedEmail } from "@/lib/email/send";
+import { otpEmail } from "@/lib/email/templates";
 
 function hashOtp(email: string, code: string) {
   return createHash("sha256")
@@ -93,38 +95,12 @@ export function allowEmailOtpDevCode() {
   );
 }
 
-export async function sendOtpEmail(to: string, code: string) {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) {
-    return { sent: false as const, reason: "email_not_configured" as const };
-  }
-
-  const from =
-    process.env.EMAIL_FROM?.trim() ||
-    "Sub-Dispatch <onboarding@resend.dev>";
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      subject: `${code} is your Sub-Dispatch sign-in code`,
-      text: `Your Sub-Dispatch sign-in code is ${code}. It expires in 10 minutes.\n\nIf you didn’t request this, you can ignore this email.`,
-      html: `<p>Your Sub-Dispatch sign-in code is <strong style="font-size:1.25rem;letter-spacing:0.15em">${code}</strong>.</p><p>It expires in 10 minutes.</p><p style="color:#666">If you didn’t request this, you can ignore this email.</p>`,
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("Resend email failed:", text);
-    throw new Error("Failed to send email");
-  }
-
-  return { sent: true as const };
+export async function sendOtpEmail(
+  to: string,
+  code: string,
+  locale: unknown = "en",
+) {
+  return sendBrandedEmail(to, otpEmail(code, locale));
 }
 
 /** Active app_users row with this email, or env allowlist bootstrap. */
@@ -167,13 +143,14 @@ export async function findCrewByEmail(
   name: string;
   crewMemberId: string | null;
   subWorkerId?: string;
+  locale?: string | null;
 } | null> {
   const email = normalizeEmail(emailRaw);
   if (!isValidEmail(email)) return null;
 
   const { data: member } = await supabase
     .from("crew_members")
-    .select("id, name, email, active")
+    .select("id, name, email, active, locale")
     .ilike("email", email)
     .eq("active", true)
     .maybeSingle();
@@ -183,6 +160,7 @@ export async function findCrewByEmail(
       email: normalizeEmail(member.email),
       name: member.name,
       crewMemberId: member.id,
+      locale: member.locale ?? null,
     };
   }
 
@@ -194,11 +172,20 @@ export async function findCrewByEmail(
     .maybeSingle();
 
   if (worker?.email) {
+    const { data: byName } = await supabase
+      .from("crew_members")
+      .select("id, locale")
+      .ilike("name", worker.name.trim())
+      .eq("active", true)
+      .limit(1)
+      .maybeSingle();
+
     return {
       email: normalizeEmail(worker.email),
       name: worker.name,
-      crewMemberId: null,
+      crewMemberId: byName?.id ?? null,
       subWorkerId: worker.id,
+      locale: byName?.locale ?? null,
     };
   }
 

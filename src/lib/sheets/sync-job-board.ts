@@ -24,6 +24,7 @@ import {
   duplicateJobIdsToCancel,
   preferBoardJob,
 } from "@/lib/board-dedupe";
+import { isUncoloredBoardCrew } from "@/lib/board-typing";
 
 export type SyncJobBoardResult = {
   ok: true;
@@ -43,14 +44,30 @@ function statusForWorkDate(workDate: string) {
 
 function toRowFields(job: ParsedBoardJob) {
   const hasSer = /\/\s*ser(vice)?\b/i.test(job.site_address);
+  const freeform = isUncoloredBoardCrew(job.crew_lead);
   let work_kind = job.work_kind;
   let site_address = job.site_address;
-  // Never store a separate "service" job — it's rough with / Ser on the address
+  // Never store a separate "service" job — colored crews: rough + / Ser
   if (work_kind === "service") {
-    work_kind = "rough";
-    if (!hasSer && site_address) site_address = `${site_address} / Ser`;
+    if (freeform) {
+      work_kind = "unknown";
+    } else {
+      work_kind = "rough";
+      if (!hasSer && site_address) site_address = `${site_address} / Ser`;
+    }
   }
-  const sheets_row_key = job.sheets_row_key.replace(/:service$/i, ":rough");
+  // / Meter is always trim (green) — except GMA freeform service rows
+  if (/\/\s*meter\b/i.test(site_address || "") && !freeform) {
+    work_kind = "trim";
+  }
+  // GMA random service stays uncolored unless sheets/r-t marked rough or trim
+  if (freeform && work_kind !== "rough" && work_kind !== "trim") {
+    work_kind = "unknown";
+  }
+  const sheets_row_key = job.sheets_row_key.replace(
+    /:service$/i,
+    freeform ? ":unknown" : ":rough",
+  );
   return {
     title: site_address || job.title,
     site_address,
@@ -96,6 +113,13 @@ function dedupeParsedJobs(jobs: ParsedBoardJob[]): ParsedBoardJob[] {
   }
   return [...byCell.values()].map((job) => {
     if (job.work_kind !== "service") return job;
+    if (isUncoloredBoardCrew(job.crew_lead)) {
+      return {
+        ...job,
+        work_kind: "unknown" as const,
+        sheets_row_key: job.sheets_row_key.replace(/:service$/i, ":unknown"),
+      };
+    }
     const addr = job.site_address;
     return {
       ...job,
@@ -370,98 +394,55 @@ export async function syncJobBoard(
   }
 
   let cancelled = 0;
-  if (mode !== "all") {
-    for (const week of sheetsSynced) {
-      const weekJobs = allJobs.filter((j) => j.sheets_week === week);
-      const parsedCells = new Set(
-        weekJobs.map((j) => boardCellKey(j.sheets_row_key)).filter(Boolean),
-      );
-      if (parsedCells.size === 0) {
-        console.warn(
-          `[board sync] skip cancel for ${week}: parse returned 0 cells`,
-        );
-        continue;
-      }
-
-      const { data: existing, error: listError } = await supabase
-        .from("jobs")
-        .select("id, sheets_row_key, assigned_to, work_date, status")
-        .eq("source", "google_sheets")
-        .eq("sheets_week", week)
-        .neq("status", "cancelled");
-
-      if (listError) throw new Error(listError.message);
-
-      const toCancel = (existing ?? []).filter((row) => {
-        const cell = boardCellKey(row.sheets_row_key);
-        return cell && !parsedCells.has(cell);
-      });
-
-      // Safety: a sparse parse must not wipe the week (was leaving only Lantana/Leo jobs)
-      const existingCount = existing?.length ?? 0;
-      if (
-        existingCount >= 8 &&
-        toCancel.length >= Math.ceil(existingCount * 0.5) &&
-        weekJobs.length < existingCount * 0.5
-      ) {
-        console.warn(
-          `[board sync] skip mass cancel for ${week}: would cancel ${toCancel.length}/${existingCount} but only parsed ${weekJobs.length}`,
-        );
-        continue;
-      }
-
-      if (toCancel.length) {
-        const { error: cancelError } = await supabase
-          .from("jobs")
-          .update({ status: "cancelled" })
-          .in(
-            "id",
-            toCancel.map((r) => r.id),
-          );
-        if (cancelError) throw new Error(cancelError.message);
-        cancelled += toCancel.length;
-      }
-
-      // Collapse legacy rough + service twins for the same cell
-      const { data: remaining, error: remainError } = await supabase
+  // Collapse address twins (e.g. manual seed + Sheets) for weeks we just touched.
+  // Do NOT cancel jobs merely missing from a sparse parse — that wiped crews before.
+  const weeksToCollapse =
+    mode === "all"
+      ? [...new Set(allJobs.map((j) => j.sheets_week))]
+      : sheetsSynced;
+  for (const week of weeksToCollapse) {
+    if (!week) continue;
+    const { data: remaining, error: remainError } = await supabase
+      .from("jobs")
+      .select(
+        "id, site_address, title, assigned_to, work_kind, work_date, crew_lead, sheets_row_key, status, source",
+      )
+      .eq("sheets_week", week)
+      .neq("status", "cancelled");
+    // Also include manual jobs in the same date range (seed twins have no sheets_week)
+    const weekJobs = allJobs.filter((j) => j.sheets_week === week);
+    const dates = [...new Set(weekJobs.map((j) => j.work_date).filter(Boolean))];
+    let manuals: typeof remaining = [];
+    if (dates.length) {
+      const { data: manualRows, error: manualErr } = await supabase
         .from("jobs")
         .select(
-          "id, site_address, title, assigned_to, work_kind, work_date, crew_lead, sheets_row_key, status",
+          "id, site_address, title, assigned_to, work_kind, work_date, crew_lead, sheets_row_key, status, source",
         )
-        .eq("source", "google_sheets")
-        .eq("sheets_week", week)
+        .eq("source", "manual")
+        .in("work_date", dates)
         .neq("status", "cancelled");
-      if (remainError) throw new Error(remainError.message);
+      if (manualErr) throw new Error(manualErr.message);
+      manuals = manualRows ?? [];
+    }
+    if (remainError) throw new Error(remainError.message);
 
-      const twinIds = duplicateJobIdsToCancel(remaining ?? []);
-      if (twinIds.length) {
-        const { error: twinError } = await supabase
-          .from("jobs")
-          .update({ status: "cancelled" })
-          .in("id", twinIds);
-        if (twinError) throw new Error(twinError.message);
-        cancelled += twinIds.length;
-      }
+    const pool = [...(remaining ?? []), ...manuals];
+    const seen = new Set<string>();
+    const unique = pool.filter((row) => {
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    });
 
-      // Normalize any leftover service rows to rough + / Ser
-      for (const row of remaining ?? []) {
-        if (twinIds.includes(row.id)) continue;
-        if (row.work_kind !== "service") continue;
-        const addr = row.site_address || row.title || "";
-        const site_address = /\/\s*ser/i.test(addr) ? addr : `${addr} / Ser`;
-        await supabase
-          .from("jobs")
-          .update({
-            work_kind: "rough",
-            site_address,
-            title: site_address,
-            sheets_row_key: String(row.sheets_row_key || "").replace(
-              /:service$/i,
-              ":rough",
-            ),
-          })
-          .eq("id", row.id);
-      }
+    const twinIds = duplicateJobIdsToCancel(unique);
+    if (twinIds.length) {
+      const { error: twinError } = await supabase
+        .from("jobs")
+        .update({ status: "cancelled" })
+        .in("id", twinIds);
+      if (twinError) throw new Error(twinError.message);
+      cancelled += twinIds.length;
     }
   }
 

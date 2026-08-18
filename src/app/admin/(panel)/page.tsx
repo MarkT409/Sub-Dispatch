@@ -1,9 +1,11 @@
 import { JobBoard } from "@/components/board/JobBoard";
-import { SyncSheetsButton } from "@/components/admin/SyncSheetsButton";
 import { auth } from "@/lib/auth";
 import { fetchBoardData } from "@/lib/board";
 import { getAdminDataClient } from "@/lib/supabase/admin-data";
-import { fetchAssigneeSuggestions } from "@/lib/sub-teams-data";
+import {
+  fetchAssigneeSuggestions,
+  fetchSubTeams,
+} from "@/lib/sub-teams-data";
 
 type PageProps = {
   searchParams: Promise<{ weekStart?: string }>;
@@ -13,30 +15,30 @@ export default async function AdminSchedulerPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const session = await auth();
   const supabase = await getAdminDataClient();
-  const [board, assigneeSuggestions] = await Promise.all([
+  const [board, assigneeSuggestions, { teams }] = await Promise.all([
     fetchBoardData(supabase, params.weekStart),
     fetchAssigneeSuggestions(supabase),
+    fetchSubTeams(supabase),
   ]);
 
   const canWrite = Boolean(
     session?.user?.isSuperAdmin || session?.user?.boardWrite,
   );
 
+  const filterTeams = teams.map((t) => ({
+    name: t.name,
+    members: t.workers.map((w) => w.name),
+  }));
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-text-primary md:text-3xl">
-            Scheduler
-          </h1>
-          <p className="mt-1 text-sm text-text-muted">
-            Weekly job board · Mon–Fri
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <SyncSheetsButton />
-          <SyncSheetsButton weeks="all" label="Backfill board weeks" />
-        </div>
+      <div>
+        <h1 className="font-display text-2xl font-bold tracking-tight text-text-primary md:text-3xl">
+          Scheduler
+        </h1>
+        <p className="mt-1 text-sm text-text-muted">
+          Weekly job board · Mon–Fri
+        </p>
       </div>
 
       <JobBoard
@@ -46,7 +48,8 @@ export default async function AdminSchedulerPage({ searchParams }: PageProps) {
         crews={board.crews}
         jobs={board.jobs}
         canWrite={canWrite}
-        showSync
+        enableFilters
+        filterTeams={filterTeams}
         assigneeSuggestions={assigneeSuggestions}
       />
 

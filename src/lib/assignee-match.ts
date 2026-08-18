@@ -1,4 +1,5 @@
 import { normalizeContactName } from "@/lib/crew-lead-contacts";
+import { resolveInvoiceTab } from "@/lib/sub-teams";
 
 export function stripAssigneeNoise(raw: string) {
   return raw
@@ -59,4 +60,45 @@ export function findWorkerByAssignee<T extends { name: string }>(
   }
 
   return workers.find((w) => namesMatch(w.name, cleaned));
+}
+
+/**
+ * Whether a crew member should see a board job on their portal.
+ * - Always: assignee names them personally
+ * - Team name: assignee is their team (e.g. "Lantana")
+ * - Teammates: assignee matches another worker on their team
+ * - Mapped team: assignee resolves to their team via WORKER_MAP
+ */
+export function crewSeesBoardJob(
+  assignedTo: string | null | undefined,
+  opts: {
+    memberName: string;
+    teamNames: string[];
+    /** Other workers on the member's team(s). */
+    teammateNames?: string[];
+    /** When true, include all jobs that resolve to one of their teams. */
+    includeTeamJobs?: boolean;
+  },
+): boolean {
+  if (assigneeMatchesPerson(assignedTo, opts.memberName)) return true;
+
+  const teams = opts.teamNames.map((t) => t.trim()).filter(Boolean);
+  if (teams.length === 0 && !(opts.teammateNames?.length)) return false;
+
+  for (const team of teams) {
+    if (assigneeIsTeamName(assignedTo ?? "", team)) return true;
+  }
+
+  for (const mate of opts.teammateNames ?? []) {
+    if (assigneeMatchesPerson(assignedTo, mate)) return true;
+  }
+
+  if (!opts.includeTeamJobs) return false;
+
+  const tab = resolveInvoiceTab(assignedTo);
+  if (!tab) return false;
+  return teams.some(
+    (team) =>
+      normalizeContactName(team) === normalizeContactName(tab),
+  );
 }

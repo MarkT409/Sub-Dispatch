@@ -25,6 +25,7 @@ import {
   upsertEmailCrewUser,
   verifyEmailOtp,
 } from "@/lib/email-otp";
+import { verifyCrewMagicLink } from "@/lib/crew-magic-link";
 
 const AUTH_INTENT_COOKIE = "auth_intent";
 
@@ -260,6 +261,71 @@ function buildProviders(): Provider[] {
     }),
   );
 
+  providers.push(
+    Credentials({
+      id: "magic",
+      name: "Magic Link",
+      credentials: {
+        token: { label: "Token", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!hasServiceRoleEnv()) return null;
+
+        const token = String(credentials?.token ?? "").trim();
+        if (!token) return null;
+
+        const supabase = createServiceClient();
+        const verified = await verifyCrewMagicLink(supabase, token);
+        if (!verified.ok) {
+          console.log("Magic link failed:", verified.error);
+          return null;
+        }
+
+        if (verified.channel === "phone") {
+          const match = await findRosterByPhone(supabase, verified.destination);
+          if (!match) return null;
+          const member = await ensureCrewMemberForPhone(supabase, match);
+          if (!member) return null;
+          const linked = await upsertPhoneCrewUser(
+            supabase,
+            member,
+            verified.destination,
+            match.email,
+          );
+          return {
+            id: linked.crewUserId,
+            name: linked.crewMemberName,
+            email: match.email ?? undefined,
+            phone: verified.destination,
+            crewUserId: linked.crewUserId,
+            crewMemberId: linked.crewMemberId,
+            crewMemberName: linked.crewMemberName,
+            authKind: "magic" as const,
+          };
+        }
+
+        const match = await findCrewByEmail(supabase, verified.destination);
+        if (!match) return null;
+        const member = await ensureCrewMemberForEmail(supabase, match);
+        if (!member) return null;
+        const linked = await upsertEmailCrewUser(
+          supabase,
+          member,
+          verified.destination,
+        );
+        return {
+          id: linked.crewUserId,
+          name: linked.crewMemberName,
+          email: verified.destination,
+          crewUserId: linked.crewUserId,
+          crewMemberId: linked.crewMemberId,
+          crewMemberName: linked.crewMemberName,
+          authKind: "magic" as const,
+        };
+      },
+    }),
+  );
+
   return providers;
 }
 
@@ -296,7 +362,7 @@ type PhoneAuthUser = {
   crewMemberId?: string;
   crewMemberName?: string;
   phone?: string;
-  authKind?: "admin-phone" | "admin-email" | "email";
+  authKind?: "admin-phone" | "admin-email" | "email" | "magic";
   isAdmin?: boolean;
   isSuperAdmin?: boolean;
   boardWrite?: boolean;
@@ -316,7 +382,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
   callbacks: {
     async signIn({ user, account }) {
-      if (account?.provider === "phone" || account?.provider === "email") {
+      if (
+        account?.provider === "phone" ||
+        account?.provider === "email" ||
+        account?.provider === "magic"
+      ) {
         return Boolean((user as PhoneAuthUser).crewMemberId);
       }
 
@@ -473,7 +543,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             account.provider !== "phone" &&
             account.provider !== "admin-phone" &&
             account.provider !== "email" &&
-            account.provider !== "admin-email"
+            account.provider !== "admin-email" &&
+            account.provider !== "magic"
           ) {
             const crewUser = await findCrewUser(
               account.provider,

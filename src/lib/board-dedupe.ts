@@ -32,6 +32,10 @@ export function addressHasSer(address: string | null | undefined) {
   return /\/\s*ser(vice)?\b/i.test(String(address || ""));
 }
 
+export function addressHasMeter(address: string | null | undefined) {
+  return /\/\s*meter\b/i.test(String(address || ""));
+}
+
 type DedupeJob = {
   id?: string;
   site_address?: string | null;
@@ -42,25 +46,45 @@ type DedupeJob = {
   crew_lead?: string | null;
   sheets_row_key?: string | null;
   status?: string | null;
+  source?: string | null;
 };
 
 /**
- * Prefer a single rough(+Ser) card:
+ * Prefer a single board card per cell:
+ * - google_sheets over manual (seed/sync twins)
  * - if any variant has / Ser, keep that (as rough)
- * - otherwise keep plain rough
+ * - / Meter is always trim (green)
  * - never keep a separate "service" sibling
  */
 export function preferBoardJob<T extends DedupeJob>(a: T, b: T): T {
+  const aSrc = String(a.source || "");
+  const bSrc = String(b.source || "");
+  if (aSrc === "google_sheets" && bSrc === "manual") return a;
+  if (bSrc === "google_sheets" && aSrc === "manual") return b;
+
   const aAddr = a.site_address || a.title || "";
   const bAddr = b.site_address || b.title || "";
   const aSer = addressHasSer(aAddr);
   const bSer = addressHasSer(bAddr);
   if (aSer !== bSer) return aSer ? a : b;
 
+  const aMeter = addressHasMeter(aAddr);
+  const bMeter = addressHasMeter(bAddr);
   const aKind = String(a.work_kind || "");
   const bKind = String(b.work_kind || "");
+
+  if (aMeter || bMeter) {
+    if (aKind === "trim" && bKind !== "trim") return a;
+    if (bKind === "trim" && aKind !== "trim") return b;
+    if (aMeter !== bMeter) return aMeter ? a : b;
+  }
+
   if (aKind === "service" && bKind !== "service") return b;
   if (bKind === "service" && aKind !== "service") return a;
+
+  // Prefer trim over mis-tagged rough when kinds disagree
+  if (aKind === "trim" && bKind === "rough") return a;
+  if (bKind === "trim" && aKind === "rough") return b;
 
   const aAssigned = Boolean(a.assigned_to?.trim());
   const bAssigned = Boolean(b.assigned_to?.trim());
@@ -70,14 +94,27 @@ export function preferBoardJob<T extends DedupeJob>(a: T, b: T): T {
   const bActive = b.status !== "cancelled";
   if (aActive !== bActive) return aActive ? a : b;
 
+  // Prefer a sheets_row_key (real board cell) over a blank one
+  const aKey = Boolean(boardCellKey(a.sheets_row_key));
+  const bKey = Boolean(boardCellKey(b.sheets_row_key));
+  if (aKey !== bKey) return aKey ? a : b;
+
   return a;
 }
 
-function groupKey(job: DedupeJob) {
-  const cell = boardCellKey(job.sheets_row_key);
-  if (cell) return `cell:${cell}`;
+/**
+ * One board slot = crew + work_date + address (ignoring /Ser /Meter and source).
+ * Do NOT key only on sheets_row_key — manual seed twins lack that key and would
+ * otherwise sit beside the Sheets row forever.
+ */
+export function boardDedupeGroupKey(job: DedupeJob) {
   const base = boardAddressBase(job.site_address || job.title);
   return `addr:${String(job.crew_lead || "").toLowerCase()}|${job.work_date || ""}|${base}`;
+}
+
+/** @deprecated use boardDedupeGroupKey — kept for sync cell lookups */
+function groupKey(job: DedupeJob) {
+  return boardDedupeGroupKey(job);
 }
 
 /** One job per board cell / address. Winner keeps / Ser when present. */
@@ -107,6 +144,11 @@ export function dedupeBoardJobs<T extends DedupeJob>(jobs: T[]): T[] {
             ? `${addr} / Ser`
             : addr,
       };
+    }
+    // / Meter is always trim (green on the board)
+    const winnerAddr = winner.site_address || winner.title || "";
+    if (addressHasMeter(winnerAddr) && winner.work_kind !== "trim") {
+      winner = { ...winner, work_kind: "trim" };
     }
     out.push(winner);
   }

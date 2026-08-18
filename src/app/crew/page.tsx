@@ -4,17 +4,27 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/service";
 import { BrandMark } from "@/components/BrandMark";
 import { PoweredBy } from "@/components/PoweredBy";
+import { JobBoard } from "@/components/board/JobBoard";
 import CrewJobsList from "@/components/crew/CrewJobsList";
+import CrewPreviousJobs from "@/components/crew/CrewPreviousJobs";
 import { EnableCrewNotificationsButton } from "@/components/crew/EnableCrewNotificationsButton";
-import { assigneeMatchesPerson } from "@/lib/assignee-match";
+import { CrewMessagesBubble } from "@/components/crew/CrewMessagesBubble";
+import { LanguagePicker } from "@/components/crew/LanguagePicker";
+import {
+  assigneeMatchesPerson,
+  crewSeesBoardJob,
+  namesMatch,
+} from "@/lib/assignee-match";
+import { fetchBoardData } from "@/lib/board";
+import { todayIsoChicago } from "@/lib/sheets/job-board-parse";
+import { fetchSubTeams } from "@/lib/sub-teams-data";
+import { phoneDigits } from "@/lib/crew-phone-auth";
+import { isCrewLocale } from "@/lib/i18n/crew-messages";
+import { t } from "@/lib/i18n/crew-t";
 
-function todayLocalISO() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+type PageProps = {
+  searchParams: Promise<{ weekStart?: string }>;
+};
 
 type JobRow = {
   id: string;
@@ -43,7 +53,8 @@ function unwrapJob(jobs: AssignmentRow["jobs"]): JobRow | null {
   return Array.isArray(jobs) ? (jobs[0] ?? null) : jobs;
 }
 
-export default async function CrewDashboardPage() {
+export default async function CrewDashboardPage({ searchParams }: PageProps) {
+  const params = await searchParams;
   const session = await auth();
 
   // Admins / supervisors / super admins use the company board — not personal crew jobs
@@ -56,17 +67,64 @@ export default async function CrewDashboardPage() {
   }
 
   const supabase = createServiceClient();
-  const today = todayLocalISO();
+  const today = todayIsoChicago();
   const memberId = session.user.crewMemberId;
 
   const { data: crewMember } = await supabase
     .from("crew_members")
-    .select("id, name, email")
+    .select("id, name, email, phone, locale")
     .eq("id", memberId)
     .single();
 
   const memberName =
     crewMember?.name || session.user.crewMemberName || session.user.name || "";
+
+  if (!crewMember || !isCrewLocale(crewMember.locale)) {
+    return <LanguagePicker memberName={memberName} />;
+  }
+
+  const locale = crewMember.locale;
+  const memberPhoneDigits = crewMember?.phone
+    ? phoneDigits(crewMember.phone)
+    : "";
+
+  const [{ teams }, board] = await Promise.all([
+    fetchSubTeams(supabase),
+    fetchBoardData(supabase, params.weekStart),
+  ]);
+
+  const myTeams = teams.filter((team) =>
+    team.workers.some(
+      (w) =>
+        namesMatch(w.name, memberName) ||
+        (memberPhoneDigits.length === 10 &&
+          w.phone &&
+          phoneDigits(w.phone) === memberPhoneDigits),
+    ),
+  );
+  const teamNames = myTeams.map((t) => t.name);
+  const teammateNames = myTeams.flatMap((t) =>
+    t.workers.map((w) => w.name).filter(Boolean),
+  );
+
+  const seeOpts = {
+    memberName,
+    teamNames,
+    teammateNames,
+    includeTeamJobs: true as const,
+  };
+
+  const myBoardJobs = board.jobs.filter((j) =>
+    crewSeesBoardJob(j.assigned_to, seeOpts),
+  );
+  const crewNamesWithJobs = new Set(
+    myBoardJobs
+      .map((j) => j.crew_lead?.trim().toLowerCase())
+      .filter(Boolean) as string[],
+  );
+  const myCrews = board.crews.filter((c) =>
+    crewNamesWithJobs.has(c.name.trim().toLowerCase()),
+  );
 
   // Person's assignments (may include older team-wide dispatches)
   const { data: rawAssignments, error: assignErr } = await supabase
@@ -100,8 +158,8 @@ export default async function CrewDashboardPage() {
     console.error("crew assignments fetch failed:", assignErr.message);
   }
 
-  // Also pull jobs assigned to this person on the board (source of truth)
-  const { data: boardJobs, error: jobsErr } = await supabase
+  // Broader job pull for personal Current/Previous (not limited to this week)
+  const { data: allJobs, error: jobsErr } = await supabase
     .from("jobs")
     .select(
       "id, title, client, site_address, work_date, work_kind, notes, assigned_to, status",
@@ -109,28 +167,23 @@ export default async function CrewDashboardPage() {
     .neq("status", "cancelled")
     .not("assigned_to", "is", null)
     .order("work_date", { ascending: false })
-    .limit(200);
+    .limit(400);
 
   if (jobsErr) {
     console.error("crew jobs fetch failed:", jobsErr.message);
   }
 
-  const myBoardJobs = (boardJobs ?? []).filter(
-    (j) =>
-      j.work_date &&
-      assigneeMatchesPerson(j.assigned_to, memberName),
+  const myListJobs = (allJobs ?? []).filter(
+    (j) => j.work_date && crewSeesBoardJob(j.assigned_to, seeOpts),
   );
 
   const assignmentByJobId = new Map<string, AssignmentRow>();
   for (const row of (rawAssignments ?? []) as AssignmentRow[]) {
     const job = unwrapJob(row.jobs);
     if (!job?.id) continue;
-    // Only keep assignment if this job is actually theirs (not a teammate's)
-    if (!assigneeMatchesPerson(job.assigned_to, memberName)) continue;
     assignmentByJobId.set(job.id, { ...row, jobs: job });
   }
 
-  // Merge: every job assigned to them on the board, with assignment status if any
   const byJobId = new Map<
     string,
     {
@@ -143,11 +196,16 @@ export default async function CrewDashboardPage() {
     }
   >();
 
-  for (const job of myBoardJobs) {
+  for (const job of myListJobs) {
     const existing = assignmentByJobId.get(job.id);
+    const personallyMine = assigneeMatchesPerson(job.assigned_to, memberName);
+    const hasAssignment = Boolean(existing);
     byJobId.set(job.id, {
       id: existing?.id ?? `job:${job.id}`,
-      status: existing?.status ?? "pending",
+      status:
+        hasAssignment || personallyMine
+          ? (existing?.status ?? "pending")
+          : "scheduled",
       role: existing?.role ?? "crew",
       assigned_at: existing?.assigned_at ?? `${job.work_date}T12:00:00.000Z`,
       responded_at: existing?.responded_at ?? null,
@@ -155,7 +213,6 @@ export default async function CrewDashboardPage() {
     });
   }
 
-  // Include assignment-backed jobs that matched (in case board query missed)
   for (const [jobId, row] of assignmentByJobId) {
     if (byJobId.has(jobId)) continue;
     const job = unwrapJob(row.jobs);
@@ -178,43 +235,43 @@ export default async function CrewDashboardPage() {
 
   const previous = normalized
     .filter((a) => a.jobs.work_date! < today)
-    .sort((a, b) => b.jobs.work_date!.localeCompare(a.jobs.work_date!))
-    .slice(0, 40);
+    .sort((a, b) => b.jobs.work_date!.localeCompare(a.jobs.work_date!));
 
-  const pendingCurrent = current.filter(
-    (a) => a.status === "pending" && !a.id.startsWith("job:"),
-  );
+  const pendingCurrent = current.filter((a) => a.status === "pending");
 
-  // Only show Accept/Decline when a real assignment row exists
-  const currentWithActions = current.map((a) => ({
-    ...a,
-    // CrewJobsList uses showActions + pending; hide actions for synthetic rows
-    status: a.id.startsWith("job:") ? "scheduled" : a.status,
-  }));
+  // Keep pending/accepted/declined so crew can accept or decline (incl. board-only jobs)
+  const currentWithActions = current;
+
+  const teamLabel =
+    teamNames.length > 0 ? teamNames.join(", ") : null;
 
   return (
     <div className="min-h-screen bg-bg-base">
       <header className="border-b border-border-default bg-bg-raised">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <BrandMark className="text-lg" />
-            <div>
-              <h1 className="font-display text-lg font-bold tracking-tight text-text-primary">
-                My jobs
+        <div className="flex w-full flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-6 sm:py-4">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <Link href="/crew" className="shrink-0">
+              <BrandMark className="text-lg sm:text-xl" />
+            </Link>
+            <div className="min-w-0 border-l border-border-subtle pl-3 sm:pl-4">
+              <h1 className="font-display text-base font-bold tracking-tight text-text-primary sm:text-lg">
+                {t(locale, "mySchedule")}
               </h1>
-              <p className="text-sm text-text-muted">
+              <p className="truncate text-xs text-text-muted sm:text-sm">
                 {memberName || "Crew member"}
+                {teamLabel ? ` · ${teamLabel}` : ""}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+            <CrewMessagesBubble locale={locale} />
             <Link
               href="/crew/settings"
-              className="text-sm text-text-muted hover:text-text-primary"
+              className="min-h-9 inline-flex items-center px-1 text-sm text-text-muted hover:text-text-primary"
             >
-              Settings
+              {t(locale, "settings")}
             </Link>
-            <EnableCrewNotificationsButton />
+            <EnableCrewNotificationsButton locale={locale} />
             <form
               action={async () => {
                 "use server";
@@ -223,57 +280,90 @@ export default async function CrewDashboardPage() {
             >
               <button
                 type="submit"
-                className="text-sm text-text-muted hover:text-text-primary"
+                className="min-h-9 inline-flex items-center px-1 text-sm text-text-muted hover:text-text-primary"
               >
-                Sign out
+                {t(locale, "signOut")}
               </button>
             </form>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl space-y-10 px-4 py-8 sm:px-6">
-        <section>
-          <div className="mb-4 flex items-end justify-between gap-3">
-            <div>
-              <h2 className="font-display text-xl font-bold tracking-tight text-text-primary">
-                Current
+      <main className="w-full space-y-8 px-3 py-6 sm:space-y-10 sm:px-6 sm:py-8">
+        <section className="w-full">
+          <div className="mb-3 sm:mb-4">
+            <h2 className="font-display text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+              {t(locale, "jobBoard")}
+            </h2>
+            <p className="text-xs text-text-muted sm:text-sm">
+              {teamLabel
+                ? t(locale, "jobBoardHintTeam", { team: teamLabel })
+                : t(locale, "jobBoardHintYou")}
+            </p>
+          </div>
+
+          <JobBoard
+            weekStart={board.weekStart}
+            weekLabel={board.weekLabel}
+            days={board.days}
+            crews={myCrews}
+            jobs={myBoardJobs}
+            canWrite={false}
+            locale={locale}
+          />
+          {myBoardJobs.length === 0 && (
+            <p className="mt-3 text-center text-sm text-text-muted md:hidden">
+              {t(locale, "noJobsThisWeekHint", {
+                who: teamLabel
+                  ? `${memberName || "you"} / ${teamLabel}`
+                  : memberName || "you",
+              })}
+            </p>
+          )}
+        </section>
+
+        <section className="w-full">
+          <div className="mb-3 flex items-end justify-between gap-3 sm:mb-4">
+            <div className="min-w-0">
+              <h2 className="font-display text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+                {t(locale, "current")}
               </h2>
-              <p className="text-sm text-text-muted">
-                Jobs assigned to you — today and upcoming
+              <p className="text-xs text-text-muted sm:text-sm">
+                {t(locale, "currentHint")}
               </p>
             </div>
             {pendingCurrent.length > 0 && (
-              <span className="rounded-full bg-lime-400/20 px-2.5 py-1 text-xs font-semibold text-lime-800 dark:text-lime-300">
-                {pendingCurrent.length} pending
+              <span className="shrink-0 rounded-full bg-lime-400/20 px-2.5 py-1 text-xs font-semibold text-lime-800 dark:text-lime-300">
+                {pendingCurrent.length} {t(locale, "pending")}
               </span>
             )}
           </div>
 
           {currentWithActions.length > 0 ? (
-            <CrewJobsList assignments={currentWithActions} showActions />
+            <CrewJobsList
+              assignments={currentWithActions}
+              showActions
+              variant="rows"
+              locale={locale}
+            />
           ) : (
             <div className="rounded-xl border border-border-default bg-bg-raised px-5 py-10 text-center">
-              <p className="text-text-muted">No current jobs assigned to you.</p>
+              <p className="text-text-muted">{t(locale, "noCurrentJobs")}</p>
             </div>
           )}
         </section>
 
-        <section>
-          <div className="mb-4">
-            <h2 className="font-display text-xl font-bold tracking-tight text-text-primary">
-              Previous
+        <section className="w-full">
+          <div className="mb-3 sm:mb-4">
+            <h2 className="font-display text-lg font-bold tracking-tight text-text-primary sm:text-xl">
+              {t(locale, "previous")}
             </h2>
-            <p className="text-sm text-text-muted">Your recent past jobs</p>
+            <p className="text-xs text-text-muted sm:text-sm">
+              {t(locale, "previousHint")}
+            </p>
           </div>
 
-          {previous.length > 0 ? (
-            <CrewJobsList assignments={previous} />
-          ) : (
-            <div className="rounded-xl border border-border-default bg-bg-raised px-5 py-10 text-center">
-              <p className="text-text-muted">No previous jobs yet.</p>
-            </div>
-          )}
+          <CrewPreviousJobs assignments={previous} locale={locale} />
         </section>
       </main>
 

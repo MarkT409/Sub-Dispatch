@@ -19,7 +19,7 @@ declare module "next-auth" {
     crewUserId?: string;
     crewMemberId?: string;
     crewMemberName?: string;
-    authKind?: "admin-phone" | "admin-email" | "email";
+    authKind?: "admin-phone" | "admin-email" | "email" | "magic";
     isAdmin?: boolean;
     isSuperAdmin?: boolean;
     boardWrite?: boolean;

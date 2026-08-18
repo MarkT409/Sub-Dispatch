@@ -6,11 +6,21 @@ import { toast } from "sonner";
 import type { BoardCrew, BoardJob } from "@/lib/board";
 import { matchCrewName } from "@/lib/board";
 import { dedupeBoardJobs } from "@/lib/board-dedupe";
-import { parseBoardTyping, boardKindColor } from "@/lib/board-typing";
+import { parseBoardTyping, boardKindColor, formatBoardCellDisplay, isUncoloredBoardCrew } from "@/lib/board-typing";
 import { addDaysIso, todayIsoChicago } from "@/lib/sheets/job-board-parse";
 import { JobBoardCell } from "@/components/board/JobBoardCell";
+import {
+  BoardFilters,
+  EMPTY_BOARD_FILTERS,
+  jobMatchesBoardFilters,
+  type BoardFilterState,
+  type BoardFilterTeam,
+} from "@/components/board/BoardFilters";
+import type { CrewLocale } from "@/lib/i18n/crew-t";
+import { t } from "@/lib/i18n/crew-t";
 
-const DAY_LABELS = ["MON", "TUE", "WED", "THU", "FRI"];
+const DAY_LABELS_EN = ["MON", "TUE", "WED", "THU", "FRI"];
+const DAY_LABELS_ES = ["LUN", "MAR", "MIÉ", "JUE", "VIE"];
 const MIN_SLOTS = 1;
 const MAX_SLOTS = 20;
 
@@ -22,10 +32,10 @@ function isoDayDiff(fromIso: string, toIso: string) {
   return Math.round((to - from) / 86_400_000);
 }
 
-function formatBoardDate(iso: string) {
+function formatBoardDate(iso: string, locale: CrewLocale = "en") {
   const [y, m, d] = iso.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(locale === "es" ? "es-US" : "en-US", {
     weekday: "long",
     month: "short",
     day: "numeric",
@@ -59,8 +69,12 @@ type Props = {
   crews: BoardCrew[];
   jobs: BoardJob[];
   canWrite: boolean;
-  showSync?: boolean;
+  enableFilters?: boolean;
+  /** Sub-teams from Crew page for the All crews filter. */
+  filterTeams?: BoardFilterTeam[];
   assigneeSuggestions?: string[];
+  /** Crew portal language; admin defaults to English. */
+  locale?: CrewLocale;
 };
 
 export function JobBoard({
@@ -70,13 +84,17 @@ export function JobBoard({
   crews,
   jobs,
   canWrite,
-  showSync = false,
+  enableFilters = false,
+  filterTeams = [],
   assigneeSuggestions = [],
+  locale = "en",
 }: Props) {
+  const DAY_LABELS = locale === "es" ? DAY_LABELS_ES : DAY_LABELS_EN;
   const router = useRouter();
   const [fullscreen, setFullscreen] = useState(false);
   const [localJobs, setLocalJobs] = useState(jobs);
   const [localCrews, setLocalCrews] = useState(crews);
+  const [filters, setFilters] = useState<BoardFilterState>(EMPTY_BOARD_FILTERS);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [dispatchOpen, setDispatchOpen] = useState(false);
   const [dispatching, setDispatching] = useState(false);
@@ -105,6 +123,7 @@ export function JobBoard({
     // Changing weeks clears day selection so the wrong week can't stay checked
     setSelectedDays([]);
     setDispatchOpen(false);
+    setFilters(EMPTY_BOARD_FILTERS);
   }, [days]);
 
   useEffect(() => {
@@ -114,13 +133,38 @@ export function JobBoard({
     };
   }, []);
 
+  const filtersActive = Boolean(
+    filters.query ||
+      filters.team ||
+      filters.person ||
+      filters.day ||
+      filters.kind,
+  );
+
+  const filteredJobs = useMemo(() => {
+    if (!enableFilters || !filtersActive) return localJobs;
+    return localJobs.filter((j) =>
+      jobMatchesBoardFilters(j, filters, filterTeams),
+    );
+  }, [enableFilters, filtersActive, localJobs, filters, filterTeams]);
+
+  const displayedCrews = useMemo(() => {
+    if (!enableFilters || !filtersActive) return localCrews;
+    const names = new Set(
+      filteredJobs
+        .map((j) => j.crew_lead?.trim().toLowerCase())
+        .filter(Boolean) as string[],
+    );
+    return localCrews.filter((c) => names.has(c.name.trim().toLowerCase()));
+  }, [enableFilters, filtersActive, localCrews, filteredJobs]);
+
   const jobsByCrewDay = useMemo(() => {
     const map = new Map<string, BoardJob[]>();
-    for (const crew of localCrews) {
+    for (const crew of displayedCrews) {
       for (const day of days) {
         const key = `${crew.name.toLowerCase()}|${day}`;
         const list = dedupeBoardJobs(
-          localJobs.filter(
+          filteredJobs.filter(
             (j) =>
               matchCrewName(j.crew_lead, crew.name) && j.work_date === day,
           ),
@@ -129,7 +173,7 @@ export function JobBoard({
       }
     }
     return map;
-  }, [localCrews, days, localJobs]);
+  }, [displayedCrews, days, filteredJobs]);
 
   function occupiedRowsForCrew(crew: BoardCrew) {
     let max = 0;
@@ -345,7 +389,10 @@ export function JobBoard({
     workDate: string,
     existing?: BoardJob,
   ) {
-    const parsed = parseBoardTyping(raw, existing?.work_kind);
+    const allowFreeform = isUncoloredBoardCrew(crewLead);
+    const parsed = parseBoardTyping(raw, existing?.work_kind, {
+      allowFreeform,
+    });
 
     if (parsed === "clear") {
       if (!existing) return;
@@ -363,7 +410,11 @@ export function JobBoard({
     }
 
     if (!parsed) {
-      toast.error("Start with r (rough) or t (trim), e.g. r 1980 Campus – Juan");
+      toast.error(
+        allowFreeform
+          ? "Enter a job, or use r/t for rough/trim color"
+          : "Start with r (rough) or t (trim), e.g. r 1980 Campus – Juan",
+      );
       throw new Error("invalid typing");
     }
 
@@ -415,8 +466,8 @@ export function JobBoard({
   const crewCol = dense ? "w-16 sm:w-20" : "w-20 sm:w-24";
 
   const boardTable = (
-    <div className="w-full overflow-x-auto rounded border-2 border-black dark:border-gray-200">
-      <table className="w-full table-fixed border-collapse text-sm">
+    <div className="w-full overflow-x-auto overscroll-x-contain rounded border-2 border-black [-webkit-overflow-scrolling:touch] dark:border-gray-200">
+      <table className="w-full min-w-[640px] table-fixed border-collapse text-sm">
         <colgroup>
           <col className={crewCol} />
           <col />
@@ -446,7 +497,7 @@ export function JobBoard({
           </tr>
         </thead>
         <tbody>
-          {localCrews.map((crew) => {
+          {displayedCrews.map((crew) => {
             const occupied = occupiedRowsForCrew(crew);
             // Writers: exact slot count. Viewers: never clip jobs if slots lag behind.
             const rowCount = canWrite
@@ -490,7 +541,7 @@ export function JobBoard({
                   return (
                     <td
                       key={`${crew.id}-${day}-${rowIdx}`}
-                      className={`border-r-2 border-black p-0 align-top last:border-r-0 dark:border-gray-200 ${rowH} ${boardKindColor(job?.work_kind)} ${
+                      className={`border-r-2 border-black p-0 align-top last:border-r-0 dark:border-gray-200 ${rowH} ${boardKindColor(job?.work_kind, job?.site_address || job?.title, crew.name)} ${
                         isCrewLast
                           ? "border-b-2 border-b-black dark:border-b-gray-200"
                           : "border-b border-b-gray-400 dark:border-b-gray-500"
@@ -502,6 +553,7 @@ export function JobBoard({
                         dense={dense}
                         shaking={shakeKeys.has(cellKey)}
                         suggestions={assigneeSuggestions}
+                        crewLead={crew.name}
                         onCommit={(raw, existing) =>
                           commitCell(raw, crew.name, day, existing)
                         }
@@ -517,38 +569,90 @@ export function JobBoard({
     </div>
   );
 
+  const mobileDayBoard = (
+    <div className="space-y-3 md:hidden">
+      {days.map((day, i) => {
+        const dayJobs = displayedCrews.flatMap((crew) => {
+          const list =
+            jobsByCrewDay.get(`${crew.name.toLowerCase()}|${day}`) ?? [];
+          return list.map((job) => ({ crew: crew.name, job }));
+        });
+        return (
+          <section
+            key={day}
+            className="overflow-hidden rounded-xl border border-border-default bg-bg-raised"
+          >
+            <header className="border-b border-border-subtle bg-bg-form/60 px-3 py-2.5">
+              <h3 className="font-display text-sm font-bold tracking-wide text-text-primary">
+                {DAY_LABELS[i]}{" "}
+                <span className="font-normal text-text-muted">
+                  {formatBoardDate(day, locale)}
+                </span>
+              </h3>
+            </header>
+            {dayJobs.length === 0 ? (
+              <p className="px-3 py-4 text-sm text-text-muted">
+                {t(locale, "noJobsDay")}
+              </p>
+            ) : (
+              <ul className="divide-y divide-border-subtle">
+                {dayJobs.map(({ crew, job }) => (
+                  <li
+                    key={job.id}
+                    className={`px-3 py-2.5 ${boardKindColor(job.work_kind, job.site_address || job.title, crew)}`}
+                  >
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-black/60 dark:text-white/60">
+                      {crew}
+                      {job.assigned_to ? ` · ${job.assigned_to}` : ""}
+                      {job.work_kind
+                        ? ` · ${job.work_kind.charAt(0).toUpperCase()}${job.work_kind.slice(1)}`
+                        : ""}
+                    </p>
+                    <p className="mt-0.5 text-sm font-bold leading-snug text-gray-900 dark:text-white">
+                      {formatBoardCellDisplay(job)}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+
   const toolbar = (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         <button
           type="button"
           onClick={() => goWeek(-1)}
-          className="rounded border border-border-default px-2.5 py-1 text-sm hover:bg-bg-raised"
+          className="min-h-9 rounded border border-border-default px-2.5 py-1.5 text-sm hover:bg-bg-raised"
         >
-          ← Prev
+          {t(locale, "prevWeek")}
         </button>
-        <h2 className="min-w-[6.5rem] text-center font-display text-base font-bold tracking-wide sm:text-lg">
+        <h2 className="min-w-[5.5rem] text-center font-display text-sm font-bold tracking-wide sm:min-w-[6.5rem] sm:text-lg">
           {weekLabel}
         </h2>
         <button
           type="button"
           onClick={() => goWeek(1)}
-          className="rounded border border-border-default px-2.5 py-1 text-sm hover:bg-bg-raised"
+          className="min-h-9 rounded border border-border-default px-2.5 py-1.5 text-sm hover:bg-bg-raised"
         >
-          Next →
+          {t(locale, "nextWeek")}
         </button>
         <button
           type="button"
           onClick={() => router.push("?")}
-          className="text-sm text-text-muted hover:text-text-primary"
+          className="min-h-9 px-1 text-sm text-text-muted hover:text-text-primary"
         >
-          This week
+          {t(locale, "thisWeek")}
         </button>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {canWrite && (
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1 rounded-lg border border-border-default bg-bg-raised p-1">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border-default bg-bg-raised p-1">
               {days.map((day, i) => {
                 const on = selectedDays.includes(day);
                 return (
@@ -556,7 +660,7 @@ export function JobBoard({
                     key={day}
                     type="button"
                     onClick={() => toggleDay(day)}
-                    className={`rounded-md px-2 py-1 text-[11px] font-bold tracking-wide ${
+                    className={`min-h-8 rounded-md px-2 py-1 text-[11px] font-bold tracking-wide ${
                       on
                         ? "bg-lime-400 text-lime-950"
                         : "text-text-muted hover:text-text-primary"
@@ -572,7 +676,7 @@ export function JobBoard({
               type="button"
               disabled={selectedDays.length === 0}
               onClick={() => setDispatchOpen(true)}
-              className="rounded-lg bg-lime-400 px-3 py-1.5 text-sm font-semibold text-black hover:bg-lime-300 disabled:opacity-60"
+              className="min-h-9 rounded-lg bg-lime-400 px-3 py-1.5 text-sm font-semibold text-black hover:bg-lime-300 disabled:opacity-60"
             >
               Dispatch Crews?
             </button>
@@ -581,7 +685,7 @@ export function JobBoard({
         <button
           type="button"
           onClick={() => setFullscreen((v) => !v)}
-          className="rounded-lg border border-border-default bg-bg-raised px-3 py-1.5 text-sm font-medium text-text-primary hover:border-amber-500/40 hover:text-amber-700 dark:hover:text-amber-400"
+          className="hidden min-h-9 rounded-lg border border-border-default bg-bg-raised px-3 py-1.5 text-sm font-medium text-text-primary hover:border-amber-500/40 hover:text-amber-700 sm:inline-flex dark:hover:text-amber-400"
         >
           {fullscreen ? "Exit full screen" : "Full screen"}
         </button>
@@ -590,13 +694,43 @@ export function JobBoard({
   );
 
   const boardBody = (
-    <div className={`w-full space-y-3 ${dense ? "max-w-6xl" : ""}`}>
+    <div className="w-full space-y-3">
       {toolbar}
-      {boardTable}
-      {localCrews.length === 0 && (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-          No board crews configured. Run migration{" "}
-          <code className="text-xs">005_app_roles_board.sql</code> in Supabase.
+      {enableFilters ? (
+        <BoardFilters
+          teams={filterTeams}
+          jobs={localJobs}
+          days={days}
+          filters={filters}
+          onChange={setFilters}
+        />
+      ) : null}
+      {!canWrite ? (
+        <>
+          {mobileDayBoard}
+          <div className="hidden md:block">{boardTable}</div>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-text-muted md:hidden">
+            {t(locale, "swipeBoardHint")}
+          </p>
+          {boardTable}
+        </>
+      )}
+      {displayedCrews.length === 0 && (
+        <p className="rounded-lg border border-border-default bg-bg-raised px-4 py-6 text-center text-sm text-text-muted">
+          {filtersActive
+            ? "No jobs match these filters."
+            : canWrite
+              ? (
+                <>
+                  No board crews configured. Run migration{" "}
+                  <code className="text-xs">005_app_roles_board.sql</code> in
+                  Supabase.
+                </>
+              )
+              : t(locale, "emptyWeekViewer")}
         </p>
       )}
     </div>

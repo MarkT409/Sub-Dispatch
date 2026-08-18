@@ -110,7 +110,7 @@ export const DEFAULT_SUB_TEAMS: SeedTeam[] = [
   },
   {
     name: "Lantana",
-    members: ["Jesus", "Leo", "Gilbert", "Emir"],
+    members: ["Jesus", "Leo", "Gilbert", "Emir", "Mark"],
   },
 ];
 
@@ -222,6 +222,7 @@ const WORKER_MAP: Record<string, string> = {
   leo: "Lantana",
   gilbert: "Lantana",
   emir: "Lantana",
+  mark: "Lantana",
 };
 
 export const LANTANA_INVOICE_TAB = "Lantana";

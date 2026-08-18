@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { createServiceClient, hasServiceRoleEnv } from "@/lib/supabase/service";
 import { formatPhoneDisplay, phoneDigits } from "@/lib/crew-phone-auth";
 import { normalizeContactName } from "@/lib/crew-lead-contacts";
+import { isCrewLocale } from "@/lib/i18n/crew-messages";
 
 export async function GET() {
   if (!hasServiceRoleEnv()) {
@@ -18,7 +19,7 @@ export async function GET() {
   const supabase = createServiceClient();
   const { data: member, error } = await supabase
     .from("crew_members")
-    .select("id, name, email, phone")
+    .select("id, name, email, phone, locale")
     .eq("id", crewMemberId)
     .single();
 
@@ -39,6 +40,7 @@ export async function GET() {
   return NextResponse.json({
     profile: {
       ...member,
+      locale: isCrewLocale(member.locale) ? member.locale : null,
       push_notifications_enabled: crewUser?.push_notifications_enabled ?? true,
     },
   });
@@ -84,6 +86,16 @@ export async function PATCH(request: Request) {
     }
   }
 
+  if (body?.locale !== undefined) {
+    if (!isCrewLocale(body.locale)) {
+      return NextResponse.json(
+        { error: "Locale must be en or es." },
+        { status: 400 },
+      );
+    }
+    memberPatch.locale = body.locale;
+  }
+
   if (
     Object.keys(memberPatch).length === 0 &&
     body?.push_notifications_enabled === undefined
@@ -104,7 +116,7 @@ export async function PATCH(request: Request) {
 
   const { data: profile, error: fetchErr } = await supabase
     .from("crew_members")
-    .select("id, name, email, phone")
+    .select("id, name, email, phone, locale")
     .eq("id", crewMemberId)
     .single();
 
@@ -152,20 +164,27 @@ export async function PATCH(request: Request) {
     pushEnabled = cu?.push_notifications_enabled ?? true;
   }
 
-  if (memberPatch.phone !== undefined && profile.phone) {
-    const digits = phoneDigits(profile.phone);
-    if (digits.length === 10) {
-      await supabase
-        .from("crew_users")
-        .update({ phone: `+1${digits}` })
-        .eq("crew_member_id", crewMemberId)
-        .eq("provider", "phone");
-    }
+  if (memberPatch.phone !== undefined) {
+    const digits = profile.phone ? phoneDigits(profile.phone) : [];
+    await supabase
+      .from("crew_users")
+      .update({
+        phone: digits.length === 10 ? `+1${digits}` : null,
+      })
+      .eq("crew_member_id", crewMemberId);
+  }
+
+  if (memberPatch.email !== undefined) {
+    await supabase
+      .from("crew_users")
+      .update({ email: profile.email })
+      .eq("crew_member_id", crewMemberId);
   }
 
   return NextResponse.json({
     profile: {
       ...profile,
+      locale: isCrewLocale(profile.locale) ? profile.locale : null,
       push_notifications_enabled: pushEnabled,
     },
   });

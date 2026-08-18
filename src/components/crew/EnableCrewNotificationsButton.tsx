@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import type { CrewLocale } from "@/lib/i18n/crew-t";
+import { t } from "@/lib/i18n/crew-t";
 
 type Status =
   | "loading"
@@ -38,7 +40,11 @@ async function registerServiceWorker() {
   return navigator.serviceWorker.register("/sw.js", { scope: "/" });
 }
 
-export function EnableCrewNotificationsButton() {
+export function EnableCrewNotificationsButton({
+  locale = "en",
+}: {
+  locale?: CrewLocale;
+}) {
   const [status, setStatus] = useState<Status>("loading");
   const [busy, setBusy] = useState(false);
   const [showIosHint, setShowIosHint] = useState(false);
@@ -182,20 +188,22 @@ export function EnableCrewNotificationsButton() {
           type="button"
           disabled={busy}
           onClick={disable}
-          className="rounded-full border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:border-amber-500/40 hover:text-amber-700 disabled:opacity-70 dark:border-gray-600 dark:text-gray-200 dark:hover:text-amber-400"
+          className="min-h-9 rounded-full border border-gray-300 px-2.5 py-1.5 text-xs text-gray-700 hover:border-amber-500/40 hover:text-amber-700 disabled:opacity-70 sm:px-3 sm:text-sm dark:border-gray-600 dark:text-gray-200 dark:hover:text-amber-400"
         >
-          {busy ? "…" : "Notifications on"}
+          {busy ? "…" : t(locale, "alertsOn")}
         </button>
       ) : status === "denied" ? (
-        <span className="text-xs text-gray-500">Notifications blocked</span>
+        <span className="text-xs text-gray-500">
+          {t(locale, "alertsBlocked")}
+        </span>
       ) : (
         <button
           type="button"
           disabled={busy}
           onClick={enable}
-          className="rounded-full border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:border-amber-500/40 hover:text-amber-700 disabled:opacity-70 dark:border-gray-600 dark:text-gray-200 dark:hover:text-amber-400"
+          className="min-h-9 rounded-full border border-gray-300 px-2.5 py-1.5 text-xs text-gray-700 hover:border-amber-500/40 hover:text-amber-700 disabled:opacity-70 sm:px-3 sm:text-sm dark:border-gray-600 dark:text-gray-200 dark:hover:text-amber-400"
         >
-          {busy ? "…" : "Enable job alerts"}
+          {busy ? "…" : t(locale, "alertsEnable")}
         </button>
       )}
       {showIosHint ? (
