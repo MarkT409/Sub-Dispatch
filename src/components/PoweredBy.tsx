@@ -8,7 +8,15 @@ export function PoweredBy({ className = "" }: PoweredByProps) {
     <p
       className={`text-center text-xs text-text-muted/50 dark:text-gray-400/40 ${className}`.trim()}
     >
-      powered by Lantana Electric LLC
+      Crew Dispatch
+      {" · "}
+      <a href="/privacy" className="hover:underline">
+        Privacy
+      </a>
+      {" · "}
+      <a href="/terms" className="hover:underline">
+        Terms
+      </a>
     </p>
   );
 }

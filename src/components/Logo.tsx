@@ -10,7 +10,7 @@ export function Logo({ className = logoClass }: LogoProps) {
   return (
     <Image
       src="/lantana-logo-horizontal.png"
-      alt="Lantana Electric"
+      alt="Crew Dispatch"
       width={400}
       height={100}
       className={`${className} dark:brightness-0 dark:invert`}

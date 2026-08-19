@@ -18,7 +18,7 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const STORAGE_KEY = "lantana-theme";
+const STORAGE_KEY = "crew-dispatch-theme";
 
 function getThemeFromDom(): Theme {
   return document.documentElement.classList.contains("dark") ? "dark" : "light";

@@ -130,7 +130,7 @@ export default function CrewLoginForm({
         </div>
 
         <h1 className="mb-2 text-center font-display text-2xl font-bold tracking-tight text-text-primary">
-          Crew Portal
+          Sign in
         </h1>
         <p className="mb-8 text-center text-text-muted">
           {step === "sent"

@@ -8,10 +8,10 @@ export function About() {
               Powering homes, businesses & job sites
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-text-secondary">
-              Lantana Electric delivers residential, commercial, and underground electrical
-              work—with skilled crews for rough-in, trim, and full-scope installation. We
-              partner with electrical contractors who need dependable labor, and with
-              builders who need a team that shows up ready.
+              Crew Dispatch helps coordinate residential, commercial, and
+              underground electrical crews for rough-in, trim, and full-scope
+              installation. Pair dependable labor with clear schedules so
+              contractors know who is on site and when.
             </p>
             <p className="mt-4 text-lg leading-relaxed text-text-secondary">
               From tract homes and custom builds to service racks and finish-out, our

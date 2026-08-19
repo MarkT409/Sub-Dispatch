@@ -3,7 +3,7 @@ import { Logo } from "./Logo";
 const footerLinks = [
   { href: "#services", label: "Services" },
   { href: "#about", label: "About" },
-  { href: "#why-us", label: "Why Lantana" },
+  { href: "#why-us", label: "Why Crew Dispatch" },
   { href: "#contact", label: "Contact" },
 ];
 
@@ -17,7 +17,8 @@ export function Footer() {
           <div className="flex flex-col gap-3">
             <Logo className="h-9 w-auto max-w-[180px]" />
             <p className="max-w-xs text-sm text-text-muted leading-relaxed">
-              Licensed electrical subcontractor serving residential and commercial builders across Central Texas.
+              Crew scheduling and job dispatch for electrical crews across
+              Central Texas.
             </p>
           </div>
 
@@ -43,10 +44,10 @@ export function Footer() {
               (832) 399-1024
             </a>
             <a
-              href="mailto:noreply@lantanaelectric.com"
+              href="mailto:noreply@crew-dispatch.com"
               className="text-sm text-text-secondary transition-colors hover:text-amber-600 dark:hover:text-amber-400"
             >
-              noreply@lantanaelectric.com
+              noreply@crew-dispatch.com
             </a>
             <p className="text-sm text-text-muted">Central Texas</p>
             <a
@@ -60,10 +61,10 @@ export function Footer() {
 
         <div className="mt-10 border-t border-border-subtle pt-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-text-muted">
-            © {year} Lantana Electric LLC. All rights reserved.
+            © {year} Crew Dispatch. All rights reserved.
           </p>
           <p className="text-xs text-text-muted">
-            Electrical subcontracting — Roughs &amp; Trims
+            Crew scheduling · Job alerts · Accept / decline
           </p>
         </div>
       </div>

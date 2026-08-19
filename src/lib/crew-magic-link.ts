@@ -118,7 +118,7 @@ export async function sendMagicLinkSms(phoneE164: string, url: string) {
   const sid = process.env.TWILIO_ACCOUNT_SID!;
   const token = process.env.TWILIO_AUTH_TOKEN!;
   const from = process.env.TWILIO_FROM_NUMBER!;
-  const body = `Sub-Dispatch sign-in link (expires in 20 min):\n${url}`;
+  const body = `Crew Dispatch sign-in link (expires in 20 min):\n${url}`;
 
   const auth = Buffer.from(`${sid}:${token}`).toString("base64");
   const params = new URLSearchParams({

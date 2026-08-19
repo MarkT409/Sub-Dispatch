@@ -12,7 +12,7 @@ import { nameGetsBoardWrite } from "@/lib/supervisors";
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
 const VAPID_SUBJECT =
-  process.env.VAPID_SUBJECT || "mailto:noreply@lantanaelectric.com";
+  process.env.VAPID_SUBJECT || "mailto:noreply@crew-dispatch.com";
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
@@ -224,7 +224,7 @@ export async function sendCrewAssignmentNotifications(
         promises.push(
           sendJobAlertSms(
             phone,
-            `Sub-Dispatch: ${title}\n${body}\n${siteBaseUrl()}/crew`,
+            `Crew Dispatch: ${title}\n${body}\n${siteBaseUrl()}/crew`,
           ).then((ok) => {
             if (ok) notifiedMemberIds.add(member.id);
           }),

@@ -1,6 +1,6 @@
-# Lantana Dispatch
+# Crew Dispatch
 
-Dispatch and scheduling system for **Lantana Electric LLC** — create jobs, assign crews, track responses, and manage electrical subcontracting work (rough-in, trim, builder power). Features a protected admin panel and crew member portal.
+Crew and admin dispatch for scheduling jobs, assigning crews, tracking responses, and managing work. Features a protected admin panel and crew member portal.
 
 ## Stack
 
@@ -91,12 +91,12 @@ Admins can enable phone banners when a Lantana job is added to the board.
 2. Add to Netlify / `.env.local`:
    - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
    - `VAPID_PRIVATE_KEY`
-   - `VAPID_SUBJECT=mailto:noreply@lantanaelectric.com`
+   - `VAPID_SUBJECT=mailto:noreply@crew-dispatch.com`
 3. Run [`supabase/migrations/003_push_subscriptions.sql`](supabase/migrations/003_push_subscriptions.sql) in Supabase.
 4. Redeploy (public VAPID key is baked into the client build).
 5. On each admin device:
 On each admin device:
-   - Open `https://lantanaelectric.com/admin` while signed in
+   - Open `https://crew-dispatch.com/admin` while signed in
    - Tap **Enable notifications** and allow permission
    - **iPhone:** Share → **Add to Home Screen**, open the home-screen icon, then enable (Safari in a tab cannot receive Web Push)
 

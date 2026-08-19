@@ -20,7 +20,7 @@ export function getSuperAdminEmails(): string[] {
     .filter(Boolean);
 }
 
-/** Optional: ADMIN_EMAIL_DOMAIN=lantanaelectric.com allows any address on that domain */
+/** Optional: ADMIN_EMAIL_DOMAIN=crew-dispatch.com allows any address on that domain */
 export function getAdminEmailDomain(): string | null {
   const domain = (process.env.ADMIN_EMAIL_DOMAIN ?? "")
     .trim()

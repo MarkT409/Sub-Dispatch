@@ -5,7 +5,7 @@ import { JoinForm } from "@/components/JoinForm";
 import { positions } from "@/lib/join-positions";
 
 export const metadata: Metadata = {
-  title: "Join the Crew | Sub-Dispatch",
+  title: "Join the Crew | Crew Dispatch",
   description:
     "Looking for skilled electricians and apprentices for residential rough-in and trim work. Apply today.",
 };
@@ -54,7 +54,7 @@ export default function JoinPage() {
     <>
       <header className="fixed top-0 right-0 left-0 z-50 border-b border-border-subtle bg-bg-base/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <a href="/" className="shrink-0 transition-opacity hover:opacity-90" aria-label="Sub-Dispatch — Home">
+          <a href="/" className="shrink-0 transition-opacity hover:opacity-90" aria-label="Crew Dispatch — Home">
             <BrandMark className="text-xl" />
           </a>
           <a

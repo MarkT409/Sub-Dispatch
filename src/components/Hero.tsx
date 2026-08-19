@@ -8,7 +8,7 @@ export function Hero() {
         <div className="mb-6">
           <span className="inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-4 py-1.5 text-sm text-amber-600 dark:border-amber-400/20 dark:bg-amber-400/5 dark:text-amber-400">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-500 dark:bg-amber-400" />
-            Lantana Electric LLC
+            Crew Dispatch
           </span>
         </div>
 

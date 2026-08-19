@@ -252,7 +252,7 @@ export async function sendOtpSms(phoneE164: string, code: string) {
   const sid = process.env.TWILIO_ACCOUNT_SID!;
   const token = process.env.TWILIO_AUTH_TOKEN!;
   const from = process.env.TWILIO_FROM_NUMBER!;
-  const body = `Sub-Dispatch code: ${code}. Expires in 10 minutes.`;
+  const body = `Crew Dispatch code: ${code}. Expires in 10 minutes.`;
 
   const auth = Buffer.from(`${sid}:${token}`).toString("base64");
   const params = new URLSearchParams({

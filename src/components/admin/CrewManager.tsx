@@ -226,7 +226,7 @@ export function CrewManager({
           <input
             value={newTeam}
             onChange={(e) => setNewTeam(e.target.value)}
-            placeholder="e.g. Lantana"
+            placeholder="e.g. Team name"
             className="mt-1.5 w-full rounded-lg border border-border-default bg-bg-input px-3 py-2 text-sm"
           />
         </div>

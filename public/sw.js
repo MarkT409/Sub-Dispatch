@@ -1,4 +1,4 @@
-/* Sub-Dispatch service worker — push notifications (admin + crew) */
+/* Crew Dispatch service worker — push notifications (admin + crew) */
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
@@ -9,7 +9,7 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("push", (event) => {
   let payload = {
-    title: "Sub-Dispatch",
+    title: "Crew Dispatch",
     body: "You have a new update.",
     url: "/",
   };

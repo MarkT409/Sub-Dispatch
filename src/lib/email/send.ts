@@ -1,5 +1,5 @@
 import {
-  getLantanaLogoAttachment,
+  getEmailLogoAttachment,
   type EmailPayload,
 } from "@/lib/email/templates";
 
@@ -14,9 +14,9 @@ export async function sendBrandedEmail(
 
   const from =
     process.env.EMAIL_FROM?.trim() ||
-    "Sub-Dispatch <onboarding@resend.dev>";
+    "Crew Dispatch <onboarding@resend.dev>";
 
-  const logo = getLantanaLogoAttachment();
+  const logo = getEmailLogoAttachment();
   const body: Record<string, unknown> = {
     from,
     to: [to],

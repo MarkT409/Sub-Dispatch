@@ -30,7 +30,7 @@ function configureWebPush() {
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject =
     process.env.VAPID_SUBJECT ||
-    `mailto:noreply@lantanaelectric.com`;
+    `mailto:noreply@crew-dispatch.com`;
 
   if (!publicKey || !privateKey) {
     throw new Error("VAPID keys are not configured");

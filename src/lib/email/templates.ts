@@ -49,29 +49,29 @@ type EmailCopy = {
 
 const COPY: Record<CrewLocale, EmailCopy> = {
   en: {
-    brandEyebrow: "Sub-Dispatch",
+    brandEyebrow: "Crew Dispatch",
     footerRoster:
       "You’re receiving this because you’re on the crew roster.",
     magic: {
-      subject: "Sign in to Sub-Dispatch",
+      subject: "Sign in to Crew Dispatch",
       preview:
-        "Your secure Sub-Dispatch sign-in link — expires in 20 minutes.",
+        "Your secure Crew Dispatch sign-in link — expires in 20 minutes.",
       title: "Sign in to your schedule",
-      body: `Tap the button below to open Sub-Dispatch. This link works once and expires in <strong style="color:${C.ink}">20 minutes</strong>.`,
+      body: `Tap the button below to open Crew Dispatch. This link works once and expires in <strong style="color:${C.ink}">20 minutes</strong>.`,
       pasteHint: "Or paste this link into your browser:",
       cta: "Open schedule",
       footnote: "If you didn’t request this, you can ignore this email.",
       text: (url) =>
-        `Sign in to Sub-Dispatch:\n\n${url}\n\nThis link expires in 20 minutes. If you didn’t request it, you can ignore this email.`,
+        `Sign in to Crew Dispatch:\n\n${url}\n\nThis link expires in 20 minutes. If you didn’t request it, you can ignore this email.`,
     },
     otp: {
-      subject: (code) => `${code} is your Sub-Dispatch sign-in code`,
-      preview: (code) => `Your Sub-Dispatch code is ${code}`,
+      subject: (code) => `${code} is your Crew Dispatch sign-in code`,
+      preview: (code) => `Your Crew Dispatch code is ${code}`,
       title: "Your sign-in code",
       body: `Enter this code to finish signing in. It expires in <strong style="color:${C.ink}">10 minutes</strong>.`,
       footnote: "If you didn’t request this, you can ignore this email.",
       text: (code) =>
-        `Your Sub-Dispatch sign-in code is ${code}. It expires in 10 minutes.\n\nIf you didn’t request this, you can ignore this email.`,
+        `Your Crew Dispatch sign-in code is ${code}. It expires in 10 minutes.\n\nIf you didn’t request this, you can ignore this email.`,
     },
     job: {
       acceptHint: "Accept or decline from your crew schedule.",
@@ -80,29 +80,29 @@ const COPY: Record<CrewLocale, EmailCopy> = {
     },
   },
   es: {
-    brandEyebrow: "Sub-Dispatch",
+    brandEyebrow: "Crew Dispatch",
     footerRoster:
       "Recibes este correo porque estás en la lista de la cuadrilla.",
     magic: {
-      subject: "Inicia sesión en Sub-Dispatch",
+      subject: "Inicia sesión en Crew Dispatch",
       preview:
-        "Tu enlace seguro de Sub-Dispatch — caduca en 20 minutos.",
+        "Tu enlace seguro de Crew Dispatch — caduca en 20 minutos.",
       title: "Entra a tu horario",
-      body: `Toca el botón para abrir Sub-Dispatch. Este enlace funciona una vez y caduca en <strong style="color:${C.ink}">20 minutos</strong>.`,
+      body: `Toca el botón para abrir Crew Dispatch. Este enlace funciona una vez y caduca en <strong style="color:${C.ink}">20 minutos</strong>.`,
       pasteHint: "O pega este enlace en tu navegador:",
       cta: "Abrir horario",
       footnote: "Si no pediste esto, puedes ignorar este correo.",
       text: (url) =>
-        `Inicia sesión en Sub-Dispatch:\n\n${url}\n\nEste enlace caduca en 20 minutos. Si no lo pediste, ignora este correo.`,
+        `Inicia sesión en Crew Dispatch:\n\n${url}\n\nEste enlace caduca en 20 minutos. Si no lo pediste, ignora este correo.`,
     },
     otp: {
-      subject: (code) => `${code} es tu código de Sub-Dispatch`,
-      preview: (code) => `Tu código de Sub-Dispatch es ${code}`,
+      subject: (code) => `${code} es tu código de Crew Dispatch`,
+      preview: (code) => `Tu código de Crew Dispatch es ${code}`,
       title: "Tu código de acceso",
       body: `Ingresa este código para terminar de iniciar sesión. Caduca en <strong style="color:${C.ink}">10 minutos</strong>.`,
       footnote: "Si no pediste esto, puedes ignorar este correo.",
       text: (code) =>
-        `Tu código de Sub-Dispatch es ${code}. Caduca en 10 minutos.\n\nSi no lo pediste, puedes ignorar este correo.`,
+        `Tu código de Crew Dispatch es ${code}. Caduca en 10 minutos.\n\nSi no lo pediste, puedes ignorar este correo.`,
     },
     job: {
       acceptHint: "Acepta o rechaza desde el horario de la cuadrilla.",
@@ -118,7 +118,7 @@ export function resolveEmailLocale(value: unknown): CrewLocale {
 
 let logoBase64Cache: string | null = null;
 
-export function getLantanaLogoAttachment(): {
+export function getEmailLogoAttachment(): {
   filename: string;
   content: string;
   content_id: string;
@@ -190,7 +190,7 @@ function layout(options: {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${C.card};border:1px solid ${C.border};border-radius:16px;overflow:hidden">
           <tr>
             <td align="center" style="background:${C.black};padding:26px 28px">
-              <img src="cid:${LOGO_CID}" width="96" height="122" alt="Lantana Electric"
+              <img src="cid:${LOGO_CID}" width="96" height="122" alt="Crew Dispatch"
                    style="display:block;width:96px;height:auto;max-width:96px;border:0;outline:none" />
             </td>
           </tr>
@@ -219,7 +219,7 @@ function layout(options: {
           <tr>
             <td style="padding:16px 28px 22px;border-top:1px solid ${C.border};background:#f8fafc">
               <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;line-height:1.5;color:${C.muted};text-align:center">
-                Lantana Electric · Sub-Dispatch<br />
+                Crew Dispatch<br />
                 ${escapeHtml(copy.footerRoster)}
               </p>
             </td>

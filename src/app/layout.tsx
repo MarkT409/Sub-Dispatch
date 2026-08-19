@@ -23,19 +23,19 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Sub-Dispatch | Crew & Admin Dispatch",
+  title: "Crew Dispatch",
   description:
-    "Dispatch management for electrical subcontracting crews—assign jobs, track responses, and manage schedules.",
+    "Dispatch management for crews—assign jobs, track responses, and manage schedules.",
   keywords: [
     "electrical subcontractor",
     "crew dispatch",
     "job scheduling",
-    "Sub-Dispatch",
+    "Crew Dispatch",
   ],
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Sub-Dispatch",
+    title: "Crew Dispatch",
     statusBarStyle: "default",
   },
   icons: {
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
   },
   openGraph: {
-    title: "Sub-Dispatch",
+    title: "Crew Dispatch",
     description:
       "Assign crews, track job responses, and manage electrical subcontracting work.",
     type: "website",
@@ -61,8 +61,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${outfit.variable} font-sans antialiased`}>
-        <Script id="lantana-theme-init" strategy="beforeInteractive">
-          {`(function(){try{var d=document.documentElement;var t=localStorage.getItem('lantana-theme');if(t==='light'){d.classList.remove('dark')}else if(t==='dark'){d.classList.add('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){d.classList.add('dark')}else{d.classList.remove('dark')}}catch(e){}})();`}
+        <Script id="crew-dispatch-theme-init" strategy="beforeInteractive">
+          {`(function(){try{var d=document.documentElement;var t=localStorage.getItem('crew-dispatch-theme');if(t==='light'){d.classList.remove('dark')}else if(t==='dark'){d.classList.add('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){d.classList.add('dark')}else{d.classList.remove('dark')}}catch(e){}})();`}
         </Script>
         <ThemeProvider>
           {children}
