@@ -4,9 +4,9 @@ import { PoweredBy } from "@/components/PoweredBy";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Crew Dispatch",
+  title: "Crew Dispatch Privacy Policy",
   description:
-    "Privacy Policy for Crew Dispatch, including SMS, account, and website data practices.",
+    "Privacy Policy for the Crew Dispatch brand and SMS program, including how we collect mobile numbers and send transactional texts.",
 };
 
 const updated = "August 19, 2026";
@@ -33,9 +33,34 @@ export default function PrivacyPolicyPage() {
           Crew Dispatch
         </p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          Privacy Policy
+          Crew Dispatch Privacy Policy
         </h1>
         <p className="mt-3 text-sm text-text-muted">Last updated: {updated}</p>
+        <p className="mt-4 space-y-2 rounded-lg border border-border-default bg-bg-raised px-4 py-3 text-sm text-text-secondary">
+          <span className="block">
+            <strong className="text-text-primary">
+              Registered brand / legal business name:
+            </strong>{" "}
+            Lantana Electric LLC
+          </span>
+          <span className="block">
+            <strong className="text-text-primary">Product / SMS name:</strong>{" "}
+            Crew Dispatch
+          </span>
+          <span className="block">
+            This Privacy Policy belongs to{" "}
+            <strong className="text-text-primary">Lantana Electric LLC</strong>{" "}
+            (also referred to as Lantana Electric), operating{" "}
+            <strong className="text-text-primary">Crew Dispatch</strong> at{" "}
+            <a
+              href="https://crew-dispatch.com"
+              className="text-amber-700 underline dark:text-amber-400"
+            >
+              https://crew-dispatch.com
+            </a>
+            .
+          </span>
+        </p>
 
         <div className="prose-policy mt-10 space-y-8 text-[15px] leading-relaxed text-text-secondary">
           <section className="space-y-3">
@@ -43,12 +68,15 @@ export default function PrivacyPolicyPage() {
               1. Who we are
             </h2>
             <p>
-              This Privacy Policy describes how <strong>Crew Dispatch</strong>{" "}
-              (“we,” “us,” or “our”) collects, uses, shares, and protects
-              information in connection with our websites, applications, and
-              services — including our crew and admin dispatch tools, related
-              login and messaging features, and any other online services that
-              link to this policy (collectively, the “Services”).
+              This Privacy Policy describes how{" "}
+              <strong>Lantana Electric LLC</strong> (“we,” “us,” or “our”),
+              doing business as <strong>Crew Dispatch</strong>, collects, uses,
+              shares, and protects information in connection with our websites,
+              applications, and services — including our crew and admin dispatch
+              tools, related login and messaging features, and any other online
+              services that link to this policy (collectively, the “Services”).
+              Texts from this messaging program are sent under the brand name{" "}
+              <strong>Crew Dispatch</strong>.
             </p>
             <p>
               By using the Services, providing contact information to us, or
@@ -142,9 +170,35 @@ export default function PrivacyPolicyPage() {
               4. SMS / text messaging (important disclosures)
             </h2>
             <p>
-              If you provide a mobile number for Crew Dispatch—or a supervisor
-              adds your number to the crew roster for dispatch—we may send
-              transactional text messages related to the Services.
+              Texts from this program are sent under the brand name{" "}
+              <strong>Crew Dispatch</strong>.
+            </p>
+            <p>
+              <strong>How you opt in / consent:</strong> end users consent to
+              receive Crew Dispatch SMS in one of these ways:
+            </p>
+            <ul className="list-disc space-y-2 pl-5">
+              <li>
+                <strong>Web checkbox (self-serve):</strong> in Crew Dispatch
+                Settings, a user enters their mobile number and checks a consent
+                box before saving. The on-screen consent wording is: “I agree to
+                receive SMS messages from Crew Dispatch for account sign-in and
+                job alerts. Message frequency varies. Message and data rates may
+                apply. Reply STOP to opt out, HELP for help. Consent is not a
+                condition of employment. See our Privacy Policy.”
+              </li>
+              <li>
+                <strong>Verbal / roster enrollment:</strong> a supervisor may
+                collect a worker’s mobile number for the Crew Dispatch roster
+                after obtaining the worker’s verbal consent to receive the same
+                Crew Dispatch SMS types described above, and confirms that consent
+                when saving the number in the admin Crew tools.
+              </li>
+            </ul>
+            <p>
+              Providing a mobile number and completing opt-in is how consumers
+              agree to receive texts from Crew Dispatch. We do not buy lists or
+              text numbers without that consent process.
             </p>
             <p>
               <strong>Message types:</strong> secure sign-in / magic links,
@@ -354,23 +408,26 @@ export default function PrivacyPolicyPage() {
             <h2 className="font-display text-xl font-bold text-text-primary">
               13. Contact us
             </h2>
-            <p>
-              Questions about this Privacy Policy, SMS messaging, or personal
-              information requests:
-            </p>
-            <p>
-              <strong>Crew Dispatch</strong>
-              <br />
-              Email:{" "}
-              <a
-                className="font-medium text-amber-700 underline dark:text-amber-400"
-                href="mailto:support@crew-dispatch.com"
-              >
-                support@crew-dispatch.com
-              </a>
-              <br />
-              Product: Crew Dispatch
-            </p>
+              <p>
+                Questions about this Privacy Policy, SMS messaging, or personal
+                information requests:
+              </p>
+              <p>
+                <strong>Lantana Electric LLC</strong> d/b/a{" "}
+                <strong>Crew Dispatch</strong>
+                <br />
+                Email:{" "}
+                <a
+                  className="font-medium text-amber-700 underline dark:text-amber-400"
+                  href="mailto:support@crew-dispatch.com"
+                >
+                  support@crew-dispatch.com
+                </a>
+                <br />
+                Website: https://crew-dispatch.com
+                <br />
+                SMS brand: Crew Dispatch
+              </p>
             <p className="text-sm text-text-muted">
               This page is provided for transparency and carrier / messaging
               compliance. It is not legal advice. If you need a lawyer-reviewed

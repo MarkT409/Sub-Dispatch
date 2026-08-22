@@ -21,6 +21,7 @@ export function CrewSettingsForm({ initial }: { initial: Profile }) {
   const router = useRouter();
   const [email, setEmail] = useState(initial.email ?? "");
   const [phone, setPhone] = useState(initial.phone ?? "");
+  const [smsConsent, setSmsConsent] = useState(Boolean(initial.phone?.trim()));
   const [locale, setLocale] = useState<CrewLocale>(
     isCrewLocale(initial.locale) ? initial.locale : "en",
   );
@@ -32,6 +33,11 @@ export function CrewSettingsForm({ initial }: { initial: Profile }) {
 
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
+    const nextPhone = phone.trim();
+    if (nextPhone && !smsConsent) {
+      toast.error(t(locale, "smsConsentRequired"));
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch("/api/crew/settings", {
@@ -46,6 +52,7 @@ export function CrewSettingsForm({ initial }: { initial: Profile }) {
       }
       setEmail(data.profile?.email ?? email);
       setPhone(data.profile?.phone ?? phone);
+      if (data.profile?.phone) setSmsConsent(true);
       toast.success(t(locale, "profileSaved"));
     } catch {
       toast.error(t(locale, "couldNotSave"));
@@ -166,7 +173,10 @@ export function CrewSettingsForm({ initial }: { initial: Profile }) {
             <input
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                if (!e.target.value.trim()) setSmsConsent(false);
+              }}
               className="mt-1.5 w-full rounded-lg border border-border-default bg-bg-input px-3 py-2 text-sm tabular-nums"
               placeholder="(210) 555-0100"
             />
@@ -174,6 +184,28 @@ export function CrewSettingsForm({ initial }: { initial: Profile }) {
               {t(locale, "phoneHint")}
             </span>
           </label>
+
+          {phone.trim() ? (
+            <label className="flex items-start gap-3 rounded-lg border border-border-default bg-bg-base px-3 py-3 text-sm leading-snug">
+              <input
+                type="checkbox"
+                checked={smsConsent}
+                onChange={(e) => setSmsConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0"
+              />
+              <span className="text-text-secondary">
+                {t(locale, "smsConsent")}{" "}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-amber-700 underline dark:text-amber-400"
+                >
+                  Privacy Policy
+                </a>
+              </span>
+            </label>
+          ) : null}
 
           <label className="block text-sm">
             <span className="text-text-muted">{t(locale, "email")}</span>

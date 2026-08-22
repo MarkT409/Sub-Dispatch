@@ -125,6 +125,15 @@ export function CrewManager({
     const draft = draftFor(team.id);
     const name = draft.name.trim();
     if (!name) return;
+    const phone = draft.phone.trim();
+    if (
+      phone &&
+      !confirm(
+        `Confirm SMS consent for ${name}: they agreed to receive Crew Dispatch texts for sign-in and job alerts (message frequency varies; message & data rates may apply; STOP to opt out). Continue?`,
+      )
+    ) {
+      return;
+    }
     setBusy(`${team.id}:add`);
     try {
       const res = await fetch(`/api/admin/sub-teams/${team.id}/workers`, {
@@ -132,7 +141,7 @@ export function CrewManager({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          phone: draft.phone.trim() || null,
+          phone: phone || null,
         }),
       });
       const data = await res.json();
@@ -189,6 +198,14 @@ export function CrewManager({
   async function savePhone(team: SubTeam, worker: SubWorker, phone: string) {
     const next = phone.trim();
     if ((worker.phone ?? "") === next) return;
+    if (
+      next &&
+      !confirm(
+        `Confirm SMS consent for ${worker.name}: they agreed to receive Crew Dispatch texts for sign-in and job alerts (message frequency varies; message & data rates may apply; STOP to opt out). Save number?`,
+      )
+    ) {
+      return;
+    }
     setBusy(`${worker.id}:phone`);
     try {
       const updated = await patchWorker(worker.id, { phone: next || null });

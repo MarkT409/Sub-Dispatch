@@ -4,12 +4,12 @@ import { PoweredBy } from "@/components/PoweredBy";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Terms and Conditions | Crew Dispatch",
+  title: "Lantana Electric LLC Terms and Conditions | Crew Dispatch",
   description:
-    "Terms and Conditions for Crew Dispatch crew and admin services.",
+    "Terms and Conditions for Lantana Electric LLC / Crew Dispatch, including SMS program disclosures.",
 };
 
-const updated = "August 19, 2026";
+const updated = "August 20, 2026";
 
 export default function TermsPage() {
   return (
@@ -38,12 +38,38 @@ export default function TermsPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-600 dark:text-amber-400">
-          Crew Dispatch
+          Lantana Electric LLC
         </p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-          Terms and Conditions
+          Terms and Conditions for Lantana Electric LLC
         </h1>
         <p className="mt-3 text-sm text-text-muted">Last updated: {updated}</p>
+
+        <p className="mt-4 space-y-2 rounded-lg border border-border-default bg-bg-raised px-4 py-3 text-sm text-text-secondary">
+          <span className="block">
+            <strong className="text-text-primary">
+              Registered brand / legal business name:
+            </strong>{" "}
+            Lantana Electric LLC
+          </span>
+          <span className="block">
+            <strong className="text-text-primary">Product / SMS name:</strong>{" "}
+            Crew Dispatch
+          </span>
+          <span className="block">
+            These Terms belong to{" "}
+            <strong className="text-text-primary">Lantana Electric LLC</strong>{" "}
+            operating <strong className="text-text-primary">Crew Dispatch</strong>{" "}
+            at{" "}
+            <a
+              href="https://crew-dispatch.com"
+              className="text-amber-700 underline dark:text-amber-400"
+            >
+              https://crew-dispatch.com
+            </a>
+            .
+          </span>
+        </p>
 
         <div className="mt-10 space-y-8 text-[15px] leading-relaxed text-text-secondary">
           <section className="space-y-3">
@@ -53,8 +79,9 @@ export default function TermsPage() {
             <p>
               These Terms and Conditions (“Terms”) govern your access to and use
               of websites, applications, and services operated by{" "}
-              <strong>Crew Dispatch</strong> (“we,” “us,” or “our”), including
-              our crew and admin dispatch tools, login, messaging, and scheduling
+              <strong>Lantana Electric LLC</strong> (“we,” “us,” or “our”),
+              doing business as <strong>Crew Dispatch</strong>, including our
+              crew and admin dispatch tools, login, messaging, and scheduling
               features (collectively, the “Services”).
             </p>
             <p>
@@ -79,11 +106,14 @@ export default function TermsPage() {
               2. What Crew Dispatch is
             </h2>
             <p>
-              Crew Dispatch is an operational tool used by Crew Dispatch and authorized
-              crew, subcontractors, and staff to view schedules, receive job
+              Crew Dispatch is an operational tool used by{" "}
+              <strong>Lantana Electric LLC</strong> and authorized crew,
+              subcontractors, and staff to view schedules, receive job
               assignments, respond to work (for example, accept or decline),
               exchange related messages, and manage contact preferences. It is
-              provided for business and workforce coordination purposes.
+              provided for business and workforce coordination purposes only.
+              It is <strong>not</strong> an affiliate-marketing, lead-generation,
+              or third-party promotional messaging program.
             </p>
             <p>
               The Services may include email and SMS features such as sign-in
@@ -144,10 +174,25 @@ export default function TermsPage() {
               5. SMS, email, and communications
             </h2>
             <p>
-              By providing a mobile number or email—or by having that contact
-              information placed on the crew roster for dispatch—you acknowledge
-              that Crew Dispatch may send transactional communications related to the
-              Services, including sign-in links and job assignment notices.
+              <strong>Lantana Electric LLC</strong> /{" "}
+              <strong>Crew Dispatch</strong> may send transactional SMS and email
+              related to the Services (sign-in links and job assignment alerts)
+              only after you give <strong>separate, campaign-specific consent</strong>{" "}
+              — not merely by agreeing to these Terms.
+            </p>
+            <p>
+              SMS consent is collected through: (1) an unmarked checkbox in Crew
+              Dispatch Settings when you save a mobile number, or (2) verbal
+              consent during roster enrollment confirmed by a supervisor. The
+              consent wording identifies <strong>Crew Dispatch</strong> /{" "}
+              <strong>Lantana Electric LLC</strong>, states that message
+              frequency varies, that message and data rates may apply, and that
+              you may reply <strong>STOP</strong> to opt out or{" "}
+              <strong>HELP</strong> for help.
+            </p>
+            <p>
+              Agreeing to these Terms alone is <strong>not</strong> SMS opt-in.
+              Consent to receive SMS is not a condition of employment.
             </p>
             <p>
               <strong>Message frequency varies</strong> based on login activity
@@ -161,9 +206,20 @@ export default function TermsPage() {
               SMS may limit text-based login or alert features.
             </p>
             <p>
-              Additional details about how we handle contact information are in
-              our Privacy Policy. We do not sell mobile numbers or share them
-              with third parties for their marketing.
+              <strong>No third-party marketing sharing:</strong> We do{" "}
+              <strong>not</strong> sell, rent, or share mobile numbers or mobile
+              opt-in data with third parties or affiliates for their marketing or
+              promotional purposes. SMS is used only for{" "}
+              <strong>Lantana Electric LLC</strong> /{" "}
+              <strong>Crew Dispatch</strong> transactional service messages.
+              Additional details are in our{" "}
+              <Link
+                href="/privacy"
+                className="font-medium text-amber-700 underline dark:text-amber-400"
+              >
+                Privacy Policy
+              </Link>
+              .
             </p>
           </section>
 
@@ -222,13 +278,13 @@ export default function TermsPage() {
             </h2>
             <p>
               THE SERVICES ARE PROVIDED “AS IS” AND “AS AVAILABLE.” TO THE
-              MAXIMUM EXTENT PERMITTED BY LAW, LANTANA DISCLAIMS ALL WARRANTIES,
-              WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING IMPLIED
-              WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
-              TITLE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICES
-              WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, OR FREE OF HARMFUL
-              COMPONENTS, OR THAT JOB, SCHEDULE, OR MESSAGE DATA WILL ALWAYS BE
-              COMPLETE, CURRENT, OR ACCURATE.
+              MAXIMUM EXTENT PERMITTED BY LAW, LANTANA ELECTRIC LLC DISCLAIMS ALL
+              WARRANTIES, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING
+              IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+              PURPOSE, TITLE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE
+              SERVICES WILL BE UNINTERRUPTED, ERROR-FREE, SECURE, OR FREE OF
+              HARMFUL COMPONENTS, OR THAT JOB, SCHEDULE, OR MESSAGE DATA WILL
+              ALWAYS BE COMPLETE, CURRENT, OR ACCURATE.
             </p>
           </section>
 
@@ -237,9 +293,9 @@ export default function TermsPage() {
               10. Limitation of liability
             </h2>
             <p>
-              TO THE MAXIMUM EXTENT PERMITTED BY LAW, LANTANA AND ITS OFFICERS,
-              DIRECTORS, EMPLOYEES, AND AGENTS WILL NOT BE LIABLE FOR ANY
-              INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR
+              TO THE MAXIMUM EXTENT PERMITTED BY LAW, LANTANA ELECTRIC LLC AND
+              ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS WILL NOT BE LIABLE
+              FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR
               PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, GOODWILL,
               OR BUSINESS INTERRUPTION, ARISING OUT OF OR RELATED TO YOUR USE OF
               (OR INABILITY TO USE) THE SERVICES, EVEN IF ADVISED OF THE
@@ -249,7 +305,7 @@ export default function TermsPage() {
               TO THE MAXIMUM EXTENT PERMITTED BY LAW, OUR TOTAL LIABILITY FOR ANY
               CLAIM ARISING OUT OF OR RELATING TO THE SERVICES OR THESE TERMS
               WILL NOT EXCEED ONE HUNDRED U.S. DOLLARS (US $100) OR THE AMOUNT
-              YOU PAID US (IF ANY) SPECIFICALLY FOR SUB-DISPATCH ACCESS IN THE
+              YOU PAID US (IF ANY) SPECIFICALLY FOR CREW DISPATCH ACCESS IN THE
               TWELVE MONTHS BEFORE THE CLAIM, WHICHEVER IS GREATER.
             </p>
             <p>
@@ -340,7 +396,9 @@ export default function TermsPage() {
               16. Contact
             </h2>
             <p>
-              <strong>Crew Dispatch</strong>
+              <strong>Lantana Electric LLC</strong>
+              <br />
+              d/b/a Crew Dispatch
               <br />
               Email:{" "}
               <a
@@ -350,7 +408,7 @@ export default function TermsPage() {
                 support@crew-dispatch.com
               </a>
               <br />
-              Product: Crew Dispatch
+              Website: https://crew-dispatch.com
             </p>
             <p className="text-sm text-text-muted">
               This page is provided for operational and compliance purposes and

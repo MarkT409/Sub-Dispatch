@@ -59,6 +59,8 @@ export type CrewMessageKey =
   | "phoneHint"
   | "email"
   | "emailHint"
+  | "smsConsent"
+  | "smsConsentRequired"
   | "saveContact"
   | "alertsTitle"
   | "alertsHint"
@@ -151,6 +153,9 @@ const en: Record<CrewMessageKey, string> = {
   email: "Email (optional)",
   emailHint:
     "Used for sign-in links by email and for job alert emails (optional).",
+  smsConsent:
+    "I agree to receive SMS messages from Crew Dispatch for account sign-in and job alerts. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help. Consent is not a condition of employment. See our Privacy Policy.",
+  smsConsentRequired: "Check the SMS consent box to save a phone number.",
   saveContact: "Save contact info",
   alertsTitle: "Job alerts",
   alertsHint:
@@ -246,6 +251,10 @@ const es: Record<CrewMessageKey, string> = {
   email: "Correo (opcional)",
   emailHint:
     "Para iniciar sesión por enlace de correo y alertas de trabajos (opcional).",
+  smsConsent:
+    "Acepto recibir mensajes SMS de Crew Dispatch para inicio de sesión y alertas de trabajo. La frecuencia varía. Pueden aplicar tarifas de mensajes y datos. Responde STOP para cancelar, HELP para ayuda. El consentimiento no es condición de empleo. Consulta nuestra Política de Privacidad.",
+  smsConsentRequired:
+    "Marca la casilla de consentimiento SMS para guardar un teléfono.",
   saveContact: "Guardar contacto",
   alertsTitle: "Alertas de trabajos",
   alertsHint:
