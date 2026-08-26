@@ -209,6 +209,53 @@ function mergeJobs(primary: ParsedBoardJob[], secondary: ParsedBoardJob[]) {
   return [...byKey.values()];
 }
 
+/**
+ * Add new Sheet supervisors to the left column.
+ * Respects manual deactivation (e.g. LOGAN/MIKE) — does not reactivate.
+ */
+async function ensureBoardCrews(
+  supabase: SupabaseClient,
+  jobs: ParsedBoardJob[],
+) {
+  const names = [
+    ...new Set(
+      jobs
+        .map((j) => j.crew_lead.trim())
+        .filter((n) => n.length > 0 && !/^nada\b/i.test(n)),
+    ),
+  ];
+  if (names.length === 0) return;
+
+  const { data: existing, error: existingError } = await supabase
+    .from("board_crews")
+    .select("id, name, sort_order, active");
+  if (existingError) throw new Error(existingError.message);
+
+  const byName = new Map(
+    (existing ?? []).map((row) => [row.name.trim().toLowerCase(), row]),
+  );
+  let maxSort = Math.max(0, ...(existing ?? []).map((r) => r.sort_order || 0));
+
+  const toInsert: {
+    name: string;
+    sort_order: number;
+    row_slots: number;
+    active: boolean;
+  }[] = [];
+
+  for (const name of names) {
+    const key = name.toLowerCase();
+    if (byName.has(key)) continue;
+    maxSort += 1;
+    toInsert.push({ name, sort_order: maxSort, row_slots: 5, active: true });
+  }
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from("board_crews").insert(toInsert);
+    if (error) throw new Error(error.message);
+  }
+}
+
 export async function syncJobBoard(
   supabase: SupabaseClient,
   options: { weeks?: "current" | "all" } = {},
@@ -301,6 +348,8 @@ export async function syncJobBoard(
       job.work_kind === "unknown",
   );
   allJobs = dedupeParsedJobs(allJobs);
+
+  await ensureBoardCrews(supabase, allJobs);
 
   let upserted = 0;
   const insertedJobs: {

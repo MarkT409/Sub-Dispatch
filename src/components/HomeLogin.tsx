@@ -25,18 +25,14 @@ export default function HomeLogin({
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-xl dark:border-gray-700 dark:bg-gray-800">
           {!supabaseConfigured && (
             <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-              Supabase is still using placeholder values in{" "}
-              <code className="text-xs">.env.local</code>. Set your real project
-              URL and service role key, then restart the server.
+              Sign-in isn’t available right now. Please try again later.
             </div>
           )}
 
-          {!googleConfigured && (
+          {!googleConfigured && supabaseConfigured && (
             <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-              Google sign-in needs{" "}
-              <code className="text-xs">CREW_GOOGLE_CLIENT_ID</code> and{" "}
-              <code className="text-xs">CREW_GOOGLE_CLIENT_SECRET</code> in{" "}
-              <code className="text-xs">.env.local</code>.
+              Google sign-in isn’t available. Use email or phone on the next
+              screen.
             </div>
           )}
 

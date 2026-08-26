@@ -6,14 +6,15 @@ type LogoProps = {
 
 const logoClass = "h-12 w-auto sm:h-14";
 
+/** Crew Dispatch chrome CD mark (no Lantana branding). */
 export function Logo({ className = logoClass }: LogoProps) {
   return (
     <Image
-      src="/lantana-logo-horizontal.png"
+      src="/cd-chrome-icon.png"
       alt="Crew Dispatch"
-      width={400}
-      height={100}
-      className={`${className} dark:brightness-0 dark:invert`}
+      width={512}
+      height={512}
+      className={className}
       priority
     />
   );

@@ -10,6 +10,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { PoweredBy } from "@/components/PoweredBy";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
+import { AdminAutoSync } from "@/components/admin/AdminAutoSync";
 
 export function AdminShell({
   children,
@@ -44,6 +45,7 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-bg-base text-text-primary">
+      <AdminAutoSync />
       <header className="relative z-50 border-b border-border-subtle bg-bg-raised/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-6">

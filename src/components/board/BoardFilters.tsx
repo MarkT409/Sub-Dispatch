@@ -205,12 +205,12 @@ export function BoardFilters({
         </label>
 
         <select
-          aria-label="Filter by crew"
+          aria-label="Filter by sub team"
           value={filters.team}
           onChange={(e) => patch({ team: e.target.value })}
           className={selectClass}
         >
-          <option value="">All crews</option>
+          <option value="">All sub teams</option>
           {teamOptions.map((t) => (
             <option key={t.name} value={t.name}>
               {t.name}

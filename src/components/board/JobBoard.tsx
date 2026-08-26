@@ -175,6 +175,47 @@ export function JobBoard({
     return map;
   }, [displayedCrews, days, filteredJobs]);
 
+  /** Whole-week rough / trim / total (not per supervisor). */
+  const weekKindTotals = useMemo(() => {
+    let rough = 0;
+    let trim = 0;
+    let other = 0;
+    const daySet = new Set(days);
+    for (const job of filteredJobs) {
+      if (!job.work_date || !daySet.has(job.work_date)) continue;
+      const onBoard = displayedCrews.some((c) =>
+        matchCrewName(job.crew_lead, c.name),
+      );
+      if (!onBoard) continue;
+      if (job.work_kind === "trim") trim += 1;
+      else if (job.work_kind === "rough" || job.work_kind === "service")
+        rough += 1;
+      else other += 1;
+    }
+    return { rough, trim, other, total: rough + trim + other };
+  }, [filteredJobs, days, displayedCrews]);
+
+  const dayKindTotals = useMemo(() => {
+    const map = new Map<string, { rough: number; trim: number; total: number }>();
+    for (const day of days) {
+      let rough = 0;
+      let trim = 0;
+      let other = 0;
+      for (const crew of displayedCrews) {
+        const list =
+          jobsByCrewDay.get(`${crew.name.toLowerCase()}|${day}`) ?? [];
+        for (const job of list) {
+          if (job.work_kind === "trim") trim += 1;
+          else if (job.work_kind === "rough" || job.work_kind === "service")
+            rough += 1;
+          else other += 1;
+        }
+      }
+      map.set(day, { rough, trim, total: rough + trim + other });
+    }
+    return map;
+  }, [days, displayedCrews, jobsByCrewDay]);
+
   function occupiedRowsForCrew(crew: BoardCrew) {
     let max = 0;
     for (const day of days) {
@@ -483,17 +524,35 @@ export function JobBoard({
             >
               CREW
             </th>
-            {DAY_LABELS.map((label, i) => (
-              <th
-                key={label}
-                className={`border-r-2 border-black px-1 text-center font-bold tracking-wider last:border-r-0 dark:border-gray-200 ${headerH}`}
-              >
-                <div>{label}</div>
-                <div className="text-[9px] font-normal opacity-70">
-                  {days[i]?.slice(5).replace("-", "/")}
-                </div>
-              </th>
-            ))}
+            {DAY_LABELS.map((label, i) => {
+              const day = days[i];
+              const counts = day
+                ? (dayKindTotals.get(day) ?? { rough: 0, trim: 0, total: 0 })
+                : { rough: 0, trim: 0, total: 0 };
+              return (
+                <th
+                  key={label}
+                  className={`relative border-r-2 border-black px-1 text-center font-bold tracking-wider last:border-r-0 dark:border-gray-200 ${headerH}`}
+                >
+                  {/* Day stays centered; R/T sit to its right without shifting it */}
+                  <div>{label}</div>
+                  <div className="text-[9px] font-normal opacity-70">
+                    {day?.slice(5).replace("-", "/")}
+                  </div>
+                  <div
+                    className="pointer-events-none absolute right-0.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5 sm:right-1 sm:gap-1"
+                    title={`${counts.rough} rough · ${counts.trim} trim`}
+                  >
+                    <span className="rounded px-1 py-0.5 text-[9px] font-bold leading-none tabular-nums text-gray-900 bg-[#b3ceff] sm:text-[10px]">
+                      {counts.rough}
+                    </span>
+                    <span className="rounded px-1 py-0.5 text-[9px] font-bold leading-none tabular-nums text-gray-900 bg-[#b3ecd0] sm:text-[10px]">
+                      {counts.trim}
+                    </span>
+                  </div>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -648,6 +707,32 @@ export function JobBoard({
         >
           {t(locale, "thisWeek")}
         </button>
+        <div
+          className="ml-1 flex flex-wrap items-center gap-1.5"
+          aria-label={`Week totals: ${weekKindTotals.rough} rough, ${weekKindTotals.trim} trim, ${weekKindTotals.total} total`}
+        >
+          <span
+            className="inline-flex min-h-8 items-center gap-1 rounded-md bg-[#b3ceff] px-2 py-1 text-[11px] font-bold tabular-nums text-gray-900"
+            title="Rough jobs this week"
+          >
+            <span className="opacity-70">R</span>
+            {weekKindTotals.rough}
+          </span>
+          <span
+            className="inline-flex min-h-8 items-center gap-1 rounded-md bg-[#b3ecd0] px-2 py-1 text-[11px] font-bold tabular-nums text-gray-900"
+            title="Trim jobs this week"
+          >
+            <span className="opacity-70">T</span>
+            {weekKindTotals.trim}
+          </span>
+          <span
+            className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border-default bg-bg-raised px-2 py-1 text-[11px] font-bold tabular-nums text-text-primary"
+            title="All jobs this week"
+          >
+            <span className="opacity-70">Total</span>
+            {weekKindTotals.total}
+          </span>
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         {canWrite && (
@@ -678,7 +763,7 @@ export function JobBoard({
               onClick={() => setDispatchOpen(true)}
               className="min-h-9 rounded-lg bg-lime-400 px-3 py-1.5 text-sm font-semibold text-black hover:bg-lime-300 disabled:opacity-60"
             >
-              Dispatch Crews?
+              Dispatch Crews
             </button>
           </div>
         )}

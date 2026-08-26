@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { SyncSheetsButton } from "@/components/admin/SyncSheetsButton";
 import { formatCurrency, formatDate, formatWorkKind } from "@/lib/admin-format";
 import { JOB_STATUSES, JOB_TYPES, WORK_KINDS, type Job } from "@/lib/admin-types";
 
@@ -95,7 +94,6 @@ export function JobsManager({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <SyncSheetsButton source="invoices" />
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
@@ -182,7 +180,7 @@ export function JobsManager({
       <div className="overflow-hidden rounded-xl border border-border-default bg-bg-raised">
         {jobs.length === 0 ? (
           <p className="px-4 py-10 text-center text-sm text-text-muted sm:px-5">
-            No jobs yet. Sync from Sheets to pull the weekly board.
+            No jobs yet. Board jobs sync automatically from Google Sheets.
           </p>
         ) : (
           <ul className="divide-y divide-border-subtle">
