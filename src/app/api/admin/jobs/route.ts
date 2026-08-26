@@ -34,7 +34,10 @@ export async function POST(request: Request) {
   }
 
   const workKind = emptyToNull(body.work_kind ?? null);
-  if (workKind && !WORK_KINDS.includes(workKind)) {
+  if (
+    workKind &&
+    !(WORK_KINDS as readonly string[]).includes(workKind)
+  ) {
     return NextResponse.json({ error: "Invalid work kind." }, { status: 400 });
   }
 

@@ -10,6 +10,7 @@ import CrewPreviousJobs from "@/components/crew/CrewPreviousJobs";
 import { EnableCrewNotificationsButton } from "@/components/crew/EnableCrewNotificationsButton";
 import { CrewMessagesBubble } from "@/components/crew/CrewMessagesBubble";
 import { LanguagePicker } from "@/components/crew/LanguagePicker";
+import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 import {
   assigneeMatchesPerson,
   crewSeesBoardJob,
@@ -367,9 +368,10 @@ export default async function CrewDashboardPage({ searchParams }: PageProps) {
         </section>
       </main>
 
-      <footer className="pb-8">
+      <footer className="pb-20">
         <PoweredBy />
       </footer>
+      <InstallAppPrompt />
     </div>
   );
 }

@@ -218,13 +218,20 @@ export function CrewManager({
     }
   }
 
+  const missingPhones = teams.flatMap((team) =>
+    team.workers
+      .filter((w) => !w.phone?.trim())
+      .map((w) => ({ team: team.name, name: w.name })),
+  );
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Crew</h1>
         <p className="mt-1 text-text-muted">
           Subcontractor teams for dispatch. Names with a phone number show in
-          lime green. Names power assignee autocomplete and crew portal login.
+          lime green (SMS consent confirmed when saving). Names power assignee
+          autocomplete and crew portal login.
         </p>
       </div>
 
@@ -233,6 +240,25 @@ export function CrewManager({
           {seedError}
         </p>
       )}
+
+      {missingPhones.length > 0 ? (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
+          <p className="font-medium">
+            {missingPhones.length} worker
+            {missingPhones.length === 1 ? "" : "s"} missing a phone — add numbers
+            so they can get SMS sign-in links and job alerts.
+          </p>
+          <p className="mt-1 text-xs text-amber-800/90 dark:text-amber-200/80">
+            {missingPhones
+              .slice(0, 12)
+              .map((w) => `${w.name} (${w.team})`)
+              .join(" · ")}
+            {missingPhones.length > 12
+              ? ` · +${missingPhones.length - 12} more`
+              : ""}
+          </p>
+        </div>
+      ) : null}
 
       <form
         onSubmit={addTeam}
@@ -314,7 +340,7 @@ export function CrewManager({
                           type="tel"
                           defaultValue={worker.phone ?? ""}
                           key={`${worker.id}:${worker.phone ?? ""}`}
-                          placeholder="Phone"
+                          placeholder="Phone (SMS consent required)"
                           disabled={busy === `${worker.id}:phone`}
                           onBlur={(e) =>
                             void savePhone(team, worker, e.target.value)
@@ -331,6 +357,11 @@ export function CrewManager({
                               : "text-text-secondary"
                           }`}
                         />
+                        {hasPhone ? (
+                          <span className="block text-[10px] font-medium uppercase tracking-wide text-lime-700/80 dark:text-lime-300/80">
+                            SMS consent on file
+                          </span>
+                        ) : null}
                       </div>
                       <button
                         type="button"

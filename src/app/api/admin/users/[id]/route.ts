@@ -13,6 +13,7 @@ type Params = { params: Promise<{ id: string }> };
 export async function PATCH(request: NextRequest, { params }: Params) {
   const auth = await requireSuperAdmin();
   if (auth.errorResponse) return auth.errorResponse;
+  const supabase = auth.supabase;
 
   const { id } = await params;
   const body = await request.json();
@@ -76,7 +77,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     const select = includeBoardCrewId
       ? USER_SELECT_WITH_CREW
       : USER_SELECT_BASIC;
-    return auth.supabase
+    return supabase
       .from("app_users")
       .update(next)
       .eq("id", id)

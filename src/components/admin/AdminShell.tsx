@@ -9,6 +9,7 @@ import { EnableNotificationsButton } from "@/components/admin/EnableNotification
 import { BrandMark } from "@/components/BrandMark";
 import { PoweredBy } from "@/components/PoweredBy";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 
 export function AdminShell({
   children,
@@ -115,9 +116,10 @@ export function AdminShell({
         </nav>
       </header>
       <main className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 md:py-6">{children}</main>
-      <footer className="pb-8">
+      <footer className="pb-20">
         <PoweredBy />
       </footer>
+      <InstallAppPrompt />
     </div>
   );
 }

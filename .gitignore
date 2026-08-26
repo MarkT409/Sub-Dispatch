@@ -37,3 +37,7 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# Local tooling noise
+deno.lock
+supabase/.temp/

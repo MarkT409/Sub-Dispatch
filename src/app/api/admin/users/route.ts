@@ -11,26 +11,33 @@ import { nameGetsBoardWrite } from "@/lib/supervisors";
 export async function GET() {
   const auth = await requireSuperAdmin();
   if (auth.errorResponse) return auth.errorResponse;
+  const supabase = auth.supabase;
 
-  let result = await auth.supabase
+  const withCrew = await supabase
     .from("app_users")
     .select(USER_SELECT_WITH_CREW)
     .order("role", { ascending: true })
     .order("email", { ascending: true });
 
-  if (result.error && isMissingBoardCrewColumn(result.error.message)) {
-    result = await auth.supabase
+  if (withCrew.error && isMissingBoardCrewColumn(withCrew.error.message)) {
+    const basic = await supabase
       .from("app_users")
       .select(USER_SELECT_BASIC)
       .order("role", { ascending: true })
       .order("email", { ascending: true });
+    if (basic.error) {
+      return NextResponse.json({ error: basic.error.message }, { status: 500 });
+    }
+    return NextResponse.json({
+      users: (basic.data ?? []).map((u) => ({ ...u, board_crew_id: null })),
+    });
   }
 
-  if (result.error) {
-    return NextResponse.json({ error: result.error.message }, { status: 500 });
+  if (withCrew.error) {
+    return NextResponse.json({ error: withCrew.error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ users: result.data ?? [] });
+  return NextResponse.json({ users: withCrew.data ?? [] });
 }
 
 export async function POST(request: NextRequest) {
@@ -71,6 +78,8 @@ export async function POST(request: NextRequest) {
     active: true,
   };
 
+  const supabase = auth.supabase;
+
   async function write(includeBoardCrewId: boolean) {
     const row = { ...baseRow };
     if (includeBoardCrewId && board_crew_id) {
@@ -80,8 +89,8 @@ export async function POST(request: NextRequest) {
       ? USER_SELECT_WITH_CREW
       : USER_SELECT_BASIC;
     const query = email
-      ? auth.supabase.from("app_users").upsert(row, { onConflict: "email" })
-      : auth.supabase.from("app_users").insert(row);
+      ? supabase.from("app_users").upsert(row, { onConflict: "email" })
+      : supabase.from("app_users").insert(row);
     return query.select(select).single();
   }
 

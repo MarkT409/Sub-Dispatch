@@ -25,7 +25,7 @@ export default async function AdminUsersPage() {
     .eq("active", true)
     .order("sort_order", { ascending: true });
 
-  let usersQuery = await supabase
+  const withCrew = await supabase
     .from("app_users")
     .select(
       "id, email, name, phone, role, board_write, active, board_crew_id, last_login_at, created_at",
@@ -33,20 +33,25 @@ export default async function AdminUsersPage() {
     .order("role", { ascending: true })
     .order("email", { ascending: true });
 
-  if (
-    usersQuery.error?.message?.includes("board_crew_id") ||
-    usersQuery.error?.message?.includes("schema cache")
-  ) {
-    usersQuery = await supabase
-      .from("app_users")
-      .select(
-        "id, email, name, phone, role, board_write, active, last_login_at, created_at",
-      )
-      .order("role", { ascending: true })
-      .order("email", { ascending: true });
-  }
+  const usersQuery =
+    withCrew.error?.message?.includes("board_crew_id") ||
+    withCrew.error?.message?.includes("schema cache")
+      ? await supabase
+          .from("app_users")
+          .select(
+            "id, email, name, phone, role, board_write, active, last_login_at, created_at",
+          )
+          .order("role", { ascending: true })
+          .order("email", { ascending: true })
+      : withCrew;
 
-  const users = usersQuery.data;
+  const users = (usersQuery.data ?? []).map((u) => ({
+    ...u,
+    board_crew_id:
+      "board_crew_id" in u
+        ? ((u as { board_crew_id?: string | null }).board_crew_id ?? null)
+        : null,
+  }));
 
   const boardSupervisors = (crews ?? [])
     .filter((c) => isBoardSupervisorName(c.name))

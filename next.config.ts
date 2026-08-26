@@ -13,10 +13,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-typescript: {
-    // Temporarily allow production deploy while admin typing cleanup continues.
-    ignoreBuildErrors: true,
-  },
 };
 
 export default nextConfig;

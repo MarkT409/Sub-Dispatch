@@ -98,7 +98,7 @@ export function allowEmailOtpDevCode() {
 export async function sendOtpEmail(
   to: string,
   code: string,
-  locale: unknown = "en",
+  locale: string | null | undefined = "en",
 ) {
   return sendBrandedEmail(to, otpEmail(code, locale));
 }

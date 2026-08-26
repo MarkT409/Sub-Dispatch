@@ -54,8 +54,8 @@ export function jobMatchesBoardFilters(
       members.some((m) => assigneeMatchesPerson(assigned, m)) ||
       (() => {
         const tab = resolveInvoiceTab(assigned);
+        if (!tab) return false;
         return (
-          Boolean(tab) &&
           normalizeContactName(tab) === normalizeContactName(teamName)
         );
       })();

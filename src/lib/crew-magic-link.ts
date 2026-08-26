@@ -151,7 +151,7 @@ export async function sendMagicLinkSms(phoneE164: string, url: string) {
 export async function sendMagicLinkEmail(
   to: string,
   url: string,
-  locale: unknown = "en",
+  locale: string | null | undefined = "en",
 ) {
   return sendBrandedEmail(to, magicLinkEmail(url, locale));
 }
