@@ -196,12 +196,21 @@ export function CrewSettingsForm({ initial }: { initial: Profile }) {
               <span className="text-text-secondary">
                 {t(locale, "smsConsent")}{" "}
                 <a
-                  href="/privacy"
+                  href="/privacy-policy.html"
                   target="_blank"
                   rel="noreferrer"
                   className="font-medium text-amber-700 underline dark:text-amber-400"
                 >
                   Privacy Policy
+                </a>
+                {" · "}
+                <a
+                  href="/terms-and-conditions.html"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-amber-700 underline dark:text-amber-400"
+                >
+                  Terms
                 </a>
               </span>
             </label>
