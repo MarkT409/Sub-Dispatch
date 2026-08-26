@@ -1,12 +1,16 @@
 import { SignJWT, importPKCS8 } from "jose";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 
 const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
+const SA_KEY_FILE = join(process.cwd(), "secrets", "google-sa.pem");
 
 export function hasGoogleSheetsEnv() {
   return Boolean(
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-      process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY &&
+      (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY ||
+        existsSync(SA_KEY_FILE)) &&
       process.env.GOOGLE_JOB_BOARD_SPREADSHEET_ID,
   );
 }
@@ -18,6 +22,10 @@ export function getJobBoardSpreadsheetId() {
 }
 
 function getPrivateKeyPem() {
+  if (existsSync(SA_KEY_FILE)) {
+    return readFileSync(SA_KEY_FILE, "utf8").trim();
+  }
+
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
   if (!raw) throw new Error("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY is not set");
 
