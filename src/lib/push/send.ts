@@ -30,7 +30,7 @@ function configureWebPush() {
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject =
     process.env.VAPID_SUBJECT ||
-    `mailto:noreply@lantanaelectric.com`;
+    `mailto:noreply@crew-dispatch.com`;
 
   if (!publicKey || !privateKey) {
     throw new Error("VAPID keys are not configured");
@@ -71,7 +71,7 @@ export async function notifyNewBoardJobs(
     const address = job.site_address || job.title;
     const who = job.assigned_to || "Unassigned";
     const payload = JSON.stringify({
-      title: "New Lantana job",
+      title: "New job assigned",
       body: `${kind} · ${address} · ${who}`,
       url: `/admin/jobs/${job.id}`,
     });

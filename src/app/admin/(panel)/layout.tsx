@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { isAdminEmail, hasSupabaseEnv } from "@/lib/admin-auth";
-import { getAdminSession } from "@/lib/admin-session";
+import { auth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +11,20 @@ export default async function AdminPanelLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getAdminSession();
-  if (session && isAdminEmail(session.email)) {
-    return <AdminShell email={session.email}>{children}</AdminShell>;
+  const session = await auth();
+  const isAdmin =
+    Boolean(session?.user?.isAdmin) || isAdminEmail(session?.user?.email);
+
+  if (session?.user?.email && isAdmin) {
+    return (
+      <AdminShell
+        email={session.user.email}
+        isSuperAdmin={Boolean(session.user.isSuperAdmin)}
+        boardWrite={Boolean(session.user.boardWrite || session.user.isSuperAdmin)}
+      >
+        {children}
+      </AdminShell>
+    );
   }
 
   if (hasSupabaseEnv()) {

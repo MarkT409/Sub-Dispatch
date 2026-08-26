@@ -7,7 +7,7 @@ import { ThemeToggle } from "./ThemeToggle";
 const navLinks = [
   { href: "#services", label: "Services" },
   { href: "#about", label: "About" },
-  { href: "#why-us", label: "Why Lantana" },
+  { href: "#why-us", label: "Why Crew Dispatch" },
   { href: "#contact", label: "Contact" },
 ];
 
@@ -17,7 +17,7 @@ export function Header() {
   return (
     <header className="fixed top-0 right-0 left-0 z-50 border-b border-border-subtle bg-bg-base/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <a href="#" className="shrink-0 transition-opacity hover:opacity-90" aria-label="Lantana Electric — Home">
+        <a href="#" className="shrink-0 transition-opacity hover:opacity-90" aria-label="Crew Dispatch — Home">
           <Logo />
         </a>
 

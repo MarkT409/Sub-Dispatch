@@ -2,33 +2,40 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { toast } from "sonner";
+import { AdminMessagesBubble } from "@/components/admin/AdminMessagesBubble";
 import { EnableNotificationsButton } from "@/components/admin/EnableNotificationsButton";
-import { Logo } from "@/components/Logo";
+import { BrandMark } from "@/components/BrandMark";
+import { PoweredBy } from "@/components/PoweredBy";
 import { ThemeToggle } from "@/components/ThemeToggle";
-
-const nav = [
-  { href: "/admin", label: "Dashboard", exact: true },
-  { href: "/admin/jobs", label: "Jobs" },
-  { href: "/admin/payments", label: "Payments" },
-  { href: "/admin/crew", label: "Crew" },
-];
+import { InstallAppPrompt } from "@/components/InstallAppPrompt";
 
 export function AdminShell({
   children,
   email,
+  isSuperAdmin = false,
+  boardWrite = false,
 }: {
   children: React.ReactNode;
   email?: string | null;
+  isSuperAdmin?: boolean;
+  boardWrite?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  async function signOut() {
+  const nav = [
+    { href: "/admin", label: "Scheduler", exact: true },
+    { href: "/admin/crew", label: "Crew", exact: false },
+    { href: "/admin/users", label: "Users", exact: false },
+    { href: "/admin/settings", label: "Settings", exact: false },
+  ];
+
+  async function handleSignOut() {
     try {
-      await fetch("/api/admin/logout", { method: "POST" });
+      await signOut({ callbackUrl: "/admin/login" });
       toast.success("Signed out");
-      router.push("/admin/login");
       router.refresh();
     } catch {
       toast.error("Could not sign out");
@@ -37,11 +44,11 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-bg-base text-text-primary">
-      <header className="border-b border-border-subtle bg-bg-raised/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
+      <header className="relative z-50 border-b border-border-subtle bg-bg-raised/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-6">
             <Link href="/admin" className="shrink-0">
-              <Logo className="h-9 w-auto sm:h-10" />
+              <BrandMark className="text-lg sm:text-xl" />
             </Link>
             <nav className="hidden items-center gap-1 sm:flex">
               {nav.map((item) => {
@@ -66,13 +73,21 @@ export function AdminShell({
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             {email && (
-              <span className="hidden text-xs text-text-muted lg:inline">{email}</span>
+              <span className="hidden text-xs text-text-muted lg:inline">
+                {email}
+                {isSuperAdmin
+                  ? " · super"
+                  : boardWrite
+                    ? " · editor"
+                    : " · view"}
+              </span>
             )}
+            {isSuperAdmin ? <AdminMessagesBubble /> : null}
             <EnableNotificationsButton />
             <ThemeToggle />
             <button
               type="button"
-              onClick={signOut}
+              onClick={handleSignOut}
               className="rounded-full border border-border-default px-3 py-1.5 text-sm text-text-secondary hover:border-amber-500/40 hover:text-amber-600 dark:hover:text-amber-400"
             >
               Sign out
@@ -100,7 +115,11 @@ export function AdminShell({
           })}
         </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-8 md:py-10">{children}</main>
+      <main className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 md:py-6">{children}</main>
+      <footer className="pb-20">
+        <PoweredBy />
+      </footer>
+      <InstallAppPrompt />
     </div>
   );
 }

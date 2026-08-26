@@ -95,8 +95,6 @@ export function JobsManager({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <SyncSheetsButton source="board" />
-          <SyncSheetsButton source="board" weeks="all" label="Backfill all weeks" />
           <SyncSheetsButton source="invoices" />
           <button
             type="button"

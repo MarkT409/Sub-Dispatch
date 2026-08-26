@@ -1,5 +1,3 @@
-import { isLantanaJob } from "@/lib/sheets/worker-map";
-
 export type JobType = "incoming" | "outgoing";
 export type JobStatus = "lead" | "scheduled" | "in_progress" | "complete" | "cancelled";
 export type WorkKind = "rough" | "trim" | "service" | "unknown";
@@ -52,15 +50,14 @@ export function isDrawOnlyJob(job: Pick<Job, "source"> & { invoice_row_key?: str
 }
 
 /**
- * Jobs that belong on the Lantana admin Jobs list.
- * Board jobs must be Leo/Jesus/Gilbert/Lantana.
- * Invoice / DRAW rows are already Lantana-only from sheet sync.
+ * Legacy helper — admin views show all jobs now.
+ * Prefer not filtering staff boards by assignee company.
  */
 export function isVisibleLantanaJob(
   job: Pick<Job, "source" | "assigned_to"> & { invoice_row_key?: string | null },
 ) {
-  if (job.source === "manual" || job.source === "invoice") return true;
-  return isLantanaJob(job.assigned_to);
+  void job;
+  return true;
 }
 
 export type PaymentIn = {

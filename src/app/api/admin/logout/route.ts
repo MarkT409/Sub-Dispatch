@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { clearAdminSessionCookie } from "@/lib/admin-session";
 
+/** Legacy endpoint — admin UI signs out via next-auth. */
 export async function POST() {
-  const response = NextResponse.json({ ok: true });
-  clearAdminSessionCookie(response);
-  return response;
+  return NextResponse.json({ ok: true });
 }

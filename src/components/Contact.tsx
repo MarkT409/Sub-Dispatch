@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
-const CONTACT_EMAIL = "noreply@lantanaelectric.com";
+const CONTACT_EMAIL = "noreply@crew-dispatch.com";
 
 export function Contact() {
   const [sending, setSending] = useState(false);
@@ -41,7 +41,7 @@ export function Contact() {
           name,
           email,
           message,
-          _subject: `Lantana website inquiry from ${name}`,
+          _subject: `Crew Dispatch website inquiry from ${name}`,
           _replyto: email,
           _template: "table",
           _next: nextUrl,

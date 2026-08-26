@@ -20,7 +20,21 @@ export function getJobBoardSpreadsheetId() {
 function getPrivateKeyPem() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
   if (!raw) throw new Error("GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY is not set");
-  return raw.replace(/\\n/g, "\n");
+
+  // Support Netlify-friendly base64 (no multiline env pain)
+  const trimmed = raw.trim();
+  if (!trimmed.includes("BEGIN") && /^[A-Za-z0-9+/=\s]+$/.test(trimmed)) {
+    try {
+      const decoded = Buffer.from(trimmed.replace(/\s+/g, ""), "base64").toString(
+        "utf8",
+      );
+      if (decoded.includes("BEGIN")) return decoded;
+    } catch {
+      // fall through to normal PEM handling
+    }
+  }
+
+  return trimmed.replace(/\\n/g, "\n");
 }
 
 let cachedToken: { accessToken: string; expiresAt: number } | null = null;

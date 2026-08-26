@@ -14,3 +14,28 @@
 # Auto-sync Google Sheets job board → admin DB (backup; primary = Apps Script webhook)
 [functions."sync-job-board"]
   schedule = "0 * * * *"
+
+# Netlify always keeps *.netlify.app for deploys; force visitors onto the real domain.
+[[redirects]]
+  from = "https://crew-dispatch.netlify.app/*"
+  to = "https://crew-dispatch.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://crew-dispatch.netlify.app/*"
+  to = "https://crew-dispatch.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.crew-dispatch.com/*"
+  to = "https://crew-dispatch.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.crew-dispatch.com/*"
+  to = "https://crew-dispatch.com/:splat"
+  status = 301
+  force = true

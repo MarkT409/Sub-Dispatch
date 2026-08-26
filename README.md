@@ -1,6 +1,6 @@
-# Lantana Dispatch
+# Crew Dispatch
 
-Dispatch and scheduling system for **Lantana Electric LLC** — create jobs, assign crews, track responses, and manage electrical subcontracting work (rough-in, trim, builder power). Features a protected admin panel and crew member portal.
+Crew and admin dispatch for scheduling jobs, assigning crews, tracking responses, and managing work. Features a protected admin panel and crew member portal.
 
 ## Stack
 
@@ -9,14 +9,14 @@ Dispatch and scheduling system for **Lantana Electric LLC** — create jobs, ass
 - Tailwind CSS v4
 - TypeScript
 - [Supabase](https://supabase.com/) (Postgres for all data)
-- [NextAuth.js](https://next-auth.js.org/) v5 (crew SSO authentication)
-- [Zoho OAuth / OIDC](https://www.zoho.com/accounts/protocol/oauth/sign-in-using-zoho.html) (admin sign-in)
+- [NextAuth.js](https://next-auth.js.org/) v5 (unified Google SSO for admin & crew)
 - [Sonner](https://sonner.emilkowal.ski/) toasts
 - Web Push notifications
 
 ## Key Features
 
 ### Admin Panel (`/admin`)
+- **SSO Login**: Google sign-in (allowlisted emails only)
 - **Job Management**: Create, edit, and delete jobs directly in the app
 - **Crew Assignment**: Assign crew members to jobs when creating them
 - **Job Board View**: Same familiar board layout with rough/trim/service color coding
@@ -25,7 +25,7 @@ Dispatch and scheduling system for **Lantana Electric LLC** — create jobs, ass
 - **Push Notifications**: Get notified of crew responses
 
 ### Crew Portal (`/crew`)
-- **SSO Login**: Google, Apple, Microsoft, GitHub authentication
+- **SSO Login**: Google authentication
 - **Job Dashboard**: View assigned jobs for tomorrow and upcoming dates
 - **Accept/Decline**: Respond to job assignments
 - **Push Notifications**: Receive alerts when assigned to new jobs
@@ -38,8 +38,8 @@ npm install
 cp .env.example .env.local
 # Fill in:
 # - Supabase credentials
-# - Zoho OAuth for admin
-# - At least one crew SSO provider (Google, Apple, Microsoft, or GitHub)
+# - ADMIN_EMAILS (allowlisted admin emails)
+# - Google OAuth client ID + secret
 # - VAPID keys for push notifications
 # - NextAuth secret
 npm run dev
@@ -61,16 +61,16 @@ Open [http://localhost:3000](http://localhost:3000).
 4. Set environment variables from [`.env.example`](.env.example)
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` (required — admin APIs use it after Zoho login)
-   - `ADMIN_EMAILS` — comma-separated Zoho addresses allowed in `/admin`
+   - `SUPABASE_SERVICE_ROLE_KEY` (required — admin APIs use service role after SSO)
+   - `ADMIN_EMAILS` — comma-separated emails allowed in `/admin`
    - `NEXT_PUBLIC_SITE_URL` — `http://localhost:3000` locally, your live site URL in production
-4. **Zoho Sign-in (SSO)** — register a **Server-based** app at [Zoho API Console](https://api-console.zoho.com/):
-   - Authorized redirect URI: `http://localhost:3000/api/admin/zoho/callback` (and your production URL with the same path)
-   - Copy **Client ID** and **Client Secret** into `ZOHO_CLIENT_ID` / `ZOHO_CLIENT_SECRET`
-   - Set `ADMIN_SESSION_SECRET` to any long random string
-   - If your Zoho org is not in the US data center, set `ZOHO_ACCOUNTS_URL` (e.g. `https://accounts.zoho.eu`)
+5. **Google SSO (admin + crew)** — create an OAuth client in [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+   - Application type: **Web application**
+   - Redirect URI: `http://localhost:3000/api/auth/callback/google` (and production URL)
+   - Set `CREW_GOOGLE_CLIENT_ID` / `CREW_GOOGLE_CLIENT_SECRET`
+   - Add admin emails to `ADMIN_EMAILS`
 
-Admins open `/admin/login` and click **Sign in with Zoho**. They enter their normal Zoho credentials on Zoho’s site. This app never stores that password — when the Zoho password changes, sign-in here uses the new one automatically. Only allowlisted emails can enter.
+Admins open `/admin/login` and sign in with Google. Only allowlisted emails can enter the admin panel.
 
 ## Crew Workflow
 
@@ -91,12 +91,12 @@ Admins can enable phone banners when a Lantana job is added to the board.
 2. Add to Netlify / `.env.local`:
    - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
    - `VAPID_PRIVATE_KEY`
-   - `VAPID_SUBJECT=mailto:noreply@lantanaelectric.com`
+   - `VAPID_SUBJECT=mailto:noreply@crew-dispatch.com`
 3. Run [`supabase/migrations/003_push_subscriptions.sql`](supabase/migrations/003_push_subscriptions.sql) in Supabase.
 4. Redeploy (public VAPID key is baked into the client build).
 5. On each admin device:
 On each admin device:
-   - Open `https://lantanaelectric.com/admin` while signed in
+   - Open `https://crew-dispatch.com/admin` while signed in
    - Tap **Enable notifications** and allow permission
    - **iPhone:** Share → **Add to Home Screen**, open the home-screen icon, then enable (Safari in a tab cannot receive Web Push)
 

@@ -1,12 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/admin-auth";
-import { getAdminSession } from "@/lib/admin-session";
+import { auth } from "@/lib/auth";
 import { createServiceClient, hasServiceRoleEnv } from "@/lib/supabase/service";
 
-/** Supabase client for admin panel server pages (Zoho session → service role). */
+/** Supabase client for admin panel server pages (SSO session → service role). */
 export async function getAdminDataClient() {
-  const session = await getAdminSession();
-  if (session && isAdminEmail(session.email) && hasServiceRoleEnv()) {
+  const session = await auth();
+  const isAdmin = Boolean(
+    session?.user?.isAdmin || isAdminEmail(session?.user?.email),
+  );
+  if (isAdmin && hasServiceRoleEnv()) {
     return createServiceClient();
   }
   return createClient();

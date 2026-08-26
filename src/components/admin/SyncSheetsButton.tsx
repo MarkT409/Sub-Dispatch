@@ -45,6 +45,7 @@ export function SyncSheetsButton({
           upserted?: number;
           cancelled?: number;
           sheetsSynced?: string[];
+          fromTransferLog?: number;
         };
         invoices?: {
           parsed?: number;
@@ -64,6 +65,9 @@ export function SyncSheetsButton({
         parts.push(
           `Board: ${result.board.parsed ?? 0} jobs (${result.board.upserted ?? 0} saved)`,
         );
+        if (result.board.fromTransferLog) {
+          parts.push(`Transfer Log: ${result.board.fromTransferLog}`);
+        }
       }
       if (result?.invoices) {
         parts.push(

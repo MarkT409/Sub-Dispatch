@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { positions } from "@/lib/join-positions";
 
-const CONTACT_EMAIL = "noreply@lantanaelectric.com";
+const CONTACT_EMAIL = "noreply@crew-dispatch.com";
 
 export function JoinForm() {
   const [sending, setSending] = useState(false);

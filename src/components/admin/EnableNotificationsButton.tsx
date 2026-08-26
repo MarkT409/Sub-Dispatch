@@ -83,7 +83,7 @@ export function EnableNotificationsButton() {
     try {
       if (isIos() && !isStandalone()) {
         setShowIosHint(true);
-        toast.message("Add Lantana to your Home Screen first, then open it from there to enable notifications.");
+        toast.message("Add this app to your Home Screen first, then open it from there to enable notifications.");
         return;
       }
 

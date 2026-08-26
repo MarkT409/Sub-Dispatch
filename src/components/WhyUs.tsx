@@ -23,7 +23,7 @@ export function WhyUs() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="text-center">
           <h2 className="font-display text-3xl font-bold tracking-tight text-text-primary md:text-4xl">
-            Why contractors choose Lantana
+            Why contractors choose Crew Dispatch
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-text-secondary">
             Subcontracting should reduce risk on site—not add it. We focus on what

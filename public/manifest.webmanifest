@@ -1,13 +1,11 @@
 {
-  "name": "Lantana Admin",
-  "short_name": "Lantana",
-  "description": "Lantana Electric job board and payouts",
+  "name": "Crew Dispatch",
+  "short_name": "Crew Dispatch",
+  "description": "Crew and admin job board, scheduling, and payouts",
   "start_url": "/admin",
-  "scope": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
-  "orientation": "portrait-primary",
+  "background_color": "#0a0f1a",
+  "theme_color": "#0a0f1a",
   "icons": [
     {
       "src": "/icon-192.png",

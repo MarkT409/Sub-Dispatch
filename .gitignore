@@ -34,3 +34,10 @@ next-env.d.ts
 
 # vercel
 .vercel
+
+# Local Netlify folder
+.netlify
+
+# Local tooling noise
+deno.lock
+supabase/.temp/

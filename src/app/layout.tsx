@@ -23,33 +23,33 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Lantana Electric LLC | Residential & Commercial Electrical",
+  title: "Crew Dispatch",
   description:
-    "Lantana Electric provides residential, commercial, and underground electrical services—rough-in, trim, builder power, and subcontractor crews across Central Texas.",
+    "Dispatch management for crews—assign jobs, track responses, and manage schedules.",
   keywords: [
     "electrical subcontractor",
-    "rough-in electrical",
-    "trim electrical",
-    "electrical contractor",
-    "Lantana",
+    "crew dispatch",
+    "job scheduling",
+    "Crew Dispatch",
   ],
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Lantana Admin",
+    title: "Crew Dispatch",
     statusBarStyle: "default",
   },
   icons: {
     icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   openGraph: {
-    title: "Lantana | Electrical Subcontractor",
+    title: "Crew Dispatch",
     description:
-      "Skilled crews for rough-in and trim installation. Partner with Lantana for reliable electrical subcontracting.",
+      "Assign crews, track job responses, and manage electrical subcontracting work.",
     type: "website",
   },
 };
@@ -62,8 +62,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${dmSans.variable} ${outfit.variable} font-sans antialiased`}>
-        <Script id="lantana-theme-init" strategy="beforeInteractive">
-          {`(function(){try{var d=document.documentElement;var t=localStorage.getItem('lantana-theme');if(t==='light'){d.classList.remove('dark')}else if(t==='dark'){d.classList.add('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){d.classList.add('dark')}else{d.classList.remove('dark')}}catch(e){}})();`}
+        <Script id="crew-dispatch-theme-init" strategy="beforeInteractive">
+          {`(function(){try{var d=document.documentElement;var t=localStorage.getItem('crew-dispatch-theme');if(t==='light'){d.classList.remove('dark')}else if(t==='dark'){d.classList.add('dark')}else if(window.matchMedia('(prefers-color-scheme: dark)').matches){d.classList.add('dark')}else{d.classList.remove('dark')}}catch(e){}})();`}
         </Script>
         <ThemeProvider>
           {children}
