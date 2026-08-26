@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "node scripts/prepare-google-sa.mjs && npm run build"
   publish = ".next"
 
 [build.environment]

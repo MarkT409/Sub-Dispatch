@@ -41,3 +41,6 @@ next-env.d.ts
 # Local tooling noise
 deno.lock
 supabase/.temp/
+
+# Build-time secrets (written by scripts/prepare-google-sa.mjs)
+/secrets/

@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Bundle build-time Google SA key into serverless traces (avoids Lambda 4KB env limit)
+  outputFileTracingIncludes: {
+    "/*": ["./secrets/google-sa.pem"],
+  },
 };
 
 export default nextConfig;
