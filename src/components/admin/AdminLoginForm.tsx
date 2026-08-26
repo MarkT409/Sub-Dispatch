@@ -23,9 +23,7 @@ export function AdminLoginForm({
 
   const handleGoogle = async () => {
     if (!googleConfigured) {
-      toast.error(
-        "Google SSO is not configured. Add CREW_GOOGLE_CLIENT_ID and CREW_GOOGLE_CLIENT_SECRET to .env.local, then restart.",
-      );
+      toast.error("Google sign-in isn’t available right now. Try email or phone.");
       return;
     }
 
@@ -140,14 +138,7 @@ export function AdminLoginForm({
     <div className="flex flex-col gap-5">
       {!googleConfigured && step === "choose" && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-          <p className="font-medium">Google sign-in is not configured yet.</p>
-          <p className="mt-2 text-text-muted dark:text-amber-200/80">
-            Add <code className="text-xs">CREW_GOOGLE_CLIENT_ID</code> and{" "}
-            <code className="text-xs">CREW_GOOGLE_CLIENT_SECRET</code> to{" "}
-            <code className="text-xs">.env.local</code>, set the redirect URI to{" "}
-            <code className="text-xs">/api/auth/callback/google</code>, then
-            restart the dev server.
-          </p>
+          Google sign-in isn’t available. Use email or phone instead.
         </div>
       )}
 
@@ -214,8 +205,7 @@ export function AdminLoginForm({
           </button>
 
           <p className="text-center text-xs text-text-muted">
-            Email and phone use accounts under Users. Google uses the same
-            allowlist.
+            Access is managed under Admin → Users.
           </p>
         </>
       ) : step === "phone" || step === "email" ? (

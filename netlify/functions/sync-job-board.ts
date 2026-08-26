@@ -1,8 +1,9 @@
 import type { Config, Handler } from "@netlify/functions";
 
 /**
- * Scheduled sync backup (hourly).
- * Live updates: Google Sheets Apps Script webhook — see docs/sheets-live-sync.gs
+ * Scheduled sync (every 10 minutes).
+ * Admin panel also auto-syncs quietly on visit.
+ * Optional live updates: Google Sheets Apps Script webhook — see docs/sheets-live-sync.gs
  *
  * Required Netlify env:
  * - SHEETS_SYNC_SECRET
@@ -46,6 +47,6 @@ export const handler: Handler = async () => {
 };
 
 export const config: Config = {
-  // Hourly backup — live updates come from the Sheets Apps Script webhook
-  schedule: "0 * * * *",
+  // Frequent backup — admin panel also auto-syncs quietly on visit
+  schedule: "*/10 * * * *",
 };

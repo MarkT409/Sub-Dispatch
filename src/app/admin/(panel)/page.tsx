@@ -57,7 +57,7 @@ export default async function AdminSchedulerPage({ searchParams }: PageProps) {
         Type <code className="text-[10px]">r address – name</code> for rough
         (blue) or <code className="text-[10px]">t address – name</code> for
         trim (green). Select days and tap{" "}
-        <span className="font-medium">Dispatch Crews?</span> to push jobs to
+        <span className="font-medium">Dispatch Crews</span> to push jobs to
         sub crews. Drag the bottom edge of a crew name to resize rows.
       </p>
     </div>

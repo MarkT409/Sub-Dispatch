@@ -61,7 +61,7 @@ export function AdminSettingsForm({ initial }: { initial: Profile }) {
               className="mt-1.5 w-full rounded-lg border border-border-default bg-bg-form px-3 py-2 text-sm text-text-muted"
             />
             <span className="mt-1 block text-xs text-text-muted">
-              Managed by Google sign-in / Users allowlist.
+              Managed under Admin → Users.
             </span>
           </label>
 

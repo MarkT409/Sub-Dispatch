@@ -188,7 +188,7 @@ export function ThisWeekJobs({ jobs }: { jobs: Job[] }) {
       </div>
       <JobsTable
         jobs={weekJobs}
-        emptyMessage="No jobs on this week’s board yet. Sync from Sheets to pull them in."
+        emptyMessage="No jobs on this week’s board yet. Jobs sync automatically from Google Sheets."
       />
     </section>
   );

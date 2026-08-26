@@ -4,27 +4,19 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/service";
 import { BrandMark } from "@/components/BrandMark";
 import { PoweredBy } from "@/components/PoweredBy";
-import { JobBoard } from "@/components/board/JobBoard";
 import CrewJobsList from "@/components/crew/CrewJobsList";
 import CrewPreviousJobs from "@/components/crew/CrewPreviousJobs";
 import { EnableCrewNotificationsButton } from "@/components/crew/EnableCrewNotificationsButton";
 import { CrewMessagesBubble } from "@/components/crew/CrewMessagesBubble";
 import { LanguagePicker } from "@/components/crew/LanguagePicker";
 import { InstallAppPrompt } from "@/components/InstallAppPrompt";
-import {
-  assigneeMatchesPerson,
-  crewSeesBoardJob,
-  namesMatch,
-} from "@/lib/assignee-match";
-import { fetchBoardData } from "@/lib/board";
+import { assigneeMatchesPerson } from "@/lib/assignee-match";
 import { todayIsoChicago } from "@/lib/sheets/job-board-parse";
-import { fetchSubTeams } from "@/lib/sub-teams-data";
-import { phoneDigits } from "@/lib/crew-phone-auth";
 import { isCrewLocale } from "@/lib/i18n/crew-messages";
 import { t } from "@/lib/i18n/crew-t";
 
 type PageProps = {
-  searchParams: Promise<{ weekStart?: string }>;
+  searchParams?: Promise<{ weekStart?: string }>;
 };
 
 type JobRow = {
@@ -54,8 +46,7 @@ function unwrapJob(jobs: AssignmentRow["jobs"]): JobRow | null {
   return Array.isArray(jobs) ? (jobs[0] ?? null) : jobs;
 }
 
-export default async function CrewDashboardPage({ searchParams }: PageProps) {
-  const params = await searchParams;
+export default async function CrewDashboardPage(_props: PageProps = {}) {
   const session = await auth();
 
   // Admins / supervisors / super admins use the company board — not personal crew jobs
@@ -85,49 +76,8 @@ export default async function CrewDashboardPage({ searchParams }: PageProps) {
   }
 
   const locale = crewMember.locale;
-  const memberPhoneDigits = crewMember?.phone
-    ? phoneDigits(crewMember.phone)
-    : "";
 
-  const [{ teams }, board] = await Promise.all([
-    fetchSubTeams(supabase),
-    fetchBoardData(supabase, params.weekStart),
-  ]);
-
-  const myTeams = teams.filter((team) =>
-    team.workers.some(
-      (w) =>
-        namesMatch(w.name, memberName) ||
-        (memberPhoneDigits.length === 10 &&
-          w.phone &&
-          phoneDigits(w.phone) === memberPhoneDigits),
-    ),
-  );
-  const teamNames = myTeams.map((t) => t.name);
-  const teammateNames = myTeams.flatMap((t) =>
-    t.workers.map((w) => w.name).filter(Boolean),
-  );
-
-  const seeOpts = {
-    memberName,
-    teamNames,
-    teammateNames,
-    includeTeamJobs: true as const,
-  };
-
-  const myBoardJobs = board.jobs.filter((j) =>
-    crewSeesBoardJob(j.assigned_to, seeOpts),
-  );
-  const crewNamesWithJobs = new Set(
-    myBoardJobs
-      .map((j) => j.crew_lead?.trim().toLowerCase())
-      .filter(Boolean) as string[],
-  );
-  const myCrews = board.crews.filter((c) =>
-    crewNamesWithJobs.has(c.name.trim().toLowerCase()),
-  );
-
-  // Person's assignments (may include older team-wide dispatches)
+  // Dispatched rows for this login — still filter to personally named jobs below
   const { data: rawAssignments, error: assignErr } = await supabase
     .from("job_assignments")
     .select(
@@ -159,7 +109,7 @@ export default async function CrewDashboardPage({ searchParams }: PageProps) {
     console.error("crew assignments fetch failed:", assignErr.message);
   }
 
-  // Broader job pull for personal Current/Previous (not limited to this week)
+  // Jobs on the board named to this person only (not team / teammates)
   const { data: allJobs, error: jobsErr } = await supabase
     .from("jobs")
     .select(
@@ -175,13 +125,15 @@ export default async function CrewDashboardPage({ searchParams }: PageProps) {
   }
 
   const myListJobs = (allJobs ?? []).filter(
-    (j) => j.work_date && crewSeesBoardJob(j.assigned_to, seeOpts),
+    (j) => j.work_date && assigneeMatchesPerson(j.assigned_to, memberName),
   );
 
   const assignmentByJobId = new Map<string, AssignmentRow>();
   for (const row of (rawAssignments ?? []) as AssignmentRow[]) {
     const job = unwrapJob(row.jobs);
     if (!job?.id) continue;
+    // Skip team-wide / teammate dispatches — own jobs only
+    if (!assigneeMatchesPerson(job.assigned_to, memberName)) continue;
     assignmentByJobId.set(job.id, { ...row, jobs: job });
   }
 
@@ -240,11 +192,7 @@ export default async function CrewDashboardPage({ searchParams }: PageProps) {
 
   const pendingCurrent = current.filter((a) => a.status === "pending");
 
-  // Keep pending/accepted/declined so crew can accept or decline (incl. board-only jobs)
   const currentWithActions = current;
-
-  const teamLabel =
-    teamNames.length > 0 ? teamNames.join(", ") : null;
 
   return (
     <div className="min-h-screen bg-bg-base">
@@ -260,7 +208,6 @@ export default async function CrewDashboardPage({ searchParams }: PageProps) {
               </h1>
               <p className="truncate text-xs text-text-muted sm:text-sm">
                 {memberName || "Crew member"}
-                {teamLabel ? ` · ${teamLabel}` : ""}
               </p>
             </div>
           </div>
@@ -291,38 +238,6 @@ export default async function CrewDashboardPage({ searchParams }: PageProps) {
       </header>
 
       <main className="w-full space-y-8 px-3 py-6 sm:space-y-10 sm:px-6 sm:py-8">
-        <section className="w-full">
-          <div className="mb-3 sm:mb-4">
-            <h2 className="font-display text-lg font-bold tracking-tight text-text-primary sm:text-xl">
-              {t(locale, "jobBoard")}
-            </h2>
-            <p className="text-xs text-text-muted sm:text-sm">
-              {teamLabel
-                ? t(locale, "jobBoardHintTeam", { team: teamLabel })
-                : t(locale, "jobBoardHintYou")}
-            </p>
-          </div>
-
-          <JobBoard
-            weekStart={board.weekStart}
-            weekLabel={board.weekLabel}
-            days={board.days}
-            crews={myCrews}
-            jobs={myBoardJobs}
-            canWrite={false}
-            locale={locale}
-          />
-          {myBoardJobs.length === 0 && (
-            <p className="mt-3 text-center text-sm text-text-muted md:hidden">
-              {t(locale, "noJobsThisWeekHint", {
-                who: teamLabel
-                  ? `${memberName || "you"} / ${teamLabel}`
-                  : memberName || "you",
-              })}
-            </p>
-          )}
-        </section>
-
         <section className="w-full">
           <div className="mb-3 flex items-end justify-between gap-3 sm:mb-4">
             <div className="min-w-0">

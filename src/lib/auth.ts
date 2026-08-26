@@ -519,6 +519,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return token;
       }
 
+      // Session refresh / subsequent requests — keep existing crew + admin claims
+      if (!user && !account) {
+        return token;
+      }
+
       const email = normalizeEmail(
         (user?.email || token.email || "") as string,
       );
@@ -588,7 +593,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
 
+  // Stay signed in across visits (JWT cookie). Refresh claims daily while active.
   session: {
     strategy: "jwt",
+    maxAge: 60 * 60 * 24 * 90, // 90 days
+    updateAge: 60 * 60 * 24, // refresh at most once per day
+  },
+  jwt: {
+    maxAge: 60 * 60 * 24 * 90,
   },
 });

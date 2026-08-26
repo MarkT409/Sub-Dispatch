@@ -31,16 +31,12 @@ export default function CrewLoginForm({
 
   const handleGoogle = async () => {
     if (!googleConfigured) {
-      toast.error(
-        "Google SSO is not configured. Add CREW_GOOGLE_CLIENT_ID and CREW_GOOGLE_CLIENT_SECRET to .env.local, then restart.",
-      );
+      toast.error("Google sign-in isn’t available right now. Try email or phone.");
       return;
     }
 
     if (!supabaseConfigured) {
-      toast.error(
-        "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local, then restart.",
-      );
+      toast.error("Sign-in isn’t available right now. Please try again later.");
       return;
     }
 
@@ -142,9 +138,7 @@ export default function CrewLoginForm({
 
         {!supabaseConfigured && (
           <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-            Supabase is still using placeholder values in{" "}
-            <code className="text-xs">.env.local</code>. Set your real project
-            URL and service role key, then restart the server.
+            Sign-in isn’t available right now. Please try again later.
           </div>
         )}
 

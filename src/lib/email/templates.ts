@@ -16,8 +16,8 @@ const C = {
   black: "#0a0f1a",
 } as const;
 
-const LOGO_CID = "lantana-logo";
-const LOGO_FILE = "lantana-email-logo.png";
+const LOGO_CID = "crew-dispatch-logo";
+const LOGO_FILE = "cd-chrome-icon.png";
 
 type EmailCopy = {
   brandEyebrow: string;
@@ -190,8 +190,8 @@ function layout(options: {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${C.card};border:1px solid ${C.border};border-radius:16px;overflow:hidden">
           <tr>
             <td align="center" style="background:${C.black};padding:26px 28px">
-              <img src="cid:${LOGO_CID}" width="96" height="122" alt="Crew Dispatch"
-                   style="display:block;width:96px;height:auto;max-width:96px;border:0;outline:none" />
+              <img src="cid:${LOGO_CID}" width="112" height="112" alt="Crew Dispatch"
+                   style="display:block;width:112px;height:auto;max-width:112px;border:0;outline:none" />
             </td>
           </tr>
           <tr>

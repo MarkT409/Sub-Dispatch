@@ -13,7 +13,7 @@
 
 # Auto-sync Google Sheets job board → admin DB (backup; primary = Apps Script webhook)
 [functions."sync-job-board"]
-  schedule = "0 * * * *"
+  schedule = "*/10 * * * *"
 
 # Netlify always keeps *.netlify.app for deploys; force visitors onto the real domain.
 [[redirects]]

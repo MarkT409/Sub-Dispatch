@@ -230,8 +230,7 @@ export function CrewManager({
         <h1 className="font-display text-3xl font-bold tracking-tight">Crew</h1>
         <p className="mt-1 text-text-muted">
           Subcontractor teams for dispatch. Names with a phone number show in
-          lime green (SMS consent confirmed when saving). Names power assignee
-          autocomplete and crew portal login.
+          lime green. Names power assignee autocomplete and crew portal login.
         </p>
       </div>
 
@@ -340,7 +339,7 @@ export function CrewManager({
                           type="tel"
                           defaultValue={worker.phone ?? ""}
                           key={`${worker.id}:${worker.phone ?? ""}`}
-                          placeholder="Phone (SMS consent required)"
+                          placeholder="Phone"
                           disabled={busy === `${worker.id}:phone`}
                           onBlur={(e) =>
                             void savePhone(team, worker, e.target.value)
@@ -357,11 +356,6 @@ export function CrewManager({
                               : "text-text-secondary"
                           }`}
                         />
-                        {hasPhone ? (
-                          <span className="block text-[10px] font-medium uppercase tracking-wide text-lime-700/80 dark:text-lime-300/80">
-                            SMS consent on file
-                          </span>
-                        ) : null}
                       </div>
                       <button
                         type="button"

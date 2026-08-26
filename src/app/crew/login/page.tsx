@@ -22,14 +22,14 @@ export default async function CrewLoginPage({ searchParams }: PageProps) {
 
   let accessHint: string | null = null;
   if (session?.user?.email && !session.user.crewMemberId) {
-    accessHint = `Signed in as ${session.user.email}, but this email is not on the crew roster. Ask an admin to add you in Crew, then sign in again.`;
+    accessHint = `Signed in as ${session.user.email}, but this email isn’t on the crew roster. Ask an admin to add you in Crew, then sign in again.`;
   } else if (params.error === "AccessDenied" || params.error === "Callback") {
     accessHint = params.email
-      ? `${params.email} is not on the crew roster or ADMIN_EMAILS. Add it in Admin → Crew (or .env.local), then try again.`
-      : "Sign-in was denied. Your Google email must be on the crew roster (or in ADMIN_EMAILS).";
+      ? `${params.email} isn’t on the crew roster. Ask an admin to add that email in Crew, then try again.`
+      : "Sign-in was denied. Your Google email must be on the crew roster.";
   } else if (params.error === "Configuration") {
     accessHint =
-      "Auth is misconfigured. Check CREW_GOOGLE_CLIENT_ID, CREW_GOOGLE_CLIENT_SECRET, and NEXTAUTH_SECRET.";
+      "Sign-in isn’t available right now. Please try again later or use email/phone.";
   }
 
   return (

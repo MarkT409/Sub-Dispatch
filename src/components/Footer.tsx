@@ -15,7 +15,7 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-6 py-12">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-3">
-            <Logo className="h-9 w-auto max-w-[180px]" />
+            <Logo className="h-10 w-10" />
             <p className="max-w-xs text-sm text-text-muted leading-relaxed">
               Crew scheduling and job dispatch for electrical crews across
               Central Texas.
