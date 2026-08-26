@@ -55,7 +55,7 @@ async function sendJobAlertSms(phoneRaw: string, body: string) {
   const params = new URLSearchParams({
     To: to,
     From: from,
-    Body: body.slice(0, 320),
+    Body: body.slice(0, 600),
   });
 
   const res = await fetch(
@@ -74,6 +74,32 @@ async function sendJobAlertSms(phoneRaw: string, body: string) {
     return false;
   }
   return true;
+}
+
+async function isSmsOptedOut(supabase: SupabaseClient, phoneRaw: string) {
+  const e164 = toE164(phoneRaw);
+  if (!e164) return false;
+  const { data, error } = await supabase
+    .from("sms_opt_outs")
+    .select("phone_e164")
+    .eq("phone_e164", e164)
+    .maybeSingle();
+  if (error) {
+    // Table may not exist yet — don't block alerts
+    console.warn("sms_opt_outs check:", error.message);
+    return false;
+  }
+  return Boolean(data);
+}
+
+function formatJobAlertSms(job: JobNotifyBits, locale: CrewLocale) {
+  const title = t(locale, "pushNewJobTitle");
+  const body = jobBody(job, locale);
+  return [
+    t(locale, "smsJobAlert", { title, body }),
+    t(locale, "smsReplyHint"),
+    siteBaseUrl() + "/crew",
+  ].join("\n");
 }
 
 async function sendJobAlertEmail(
@@ -215,19 +241,21 @@ export async function sendCrewAssignmentNotifications(
         }
       }
 
-      // SMS to roster / linked phone
+      // SMS to roster / linked phone (locale + YES/NO reply hint)
       const phone =
         member.phone ||
         users.map((u) => u.phone).find((p) => Boolean(p)) ||
         null;
       if (phone) {
         promises.push(
-          sendJobAlertSms(
-            phone,
-            `Crew Dispatch: ${title}\n${body}\n${siteBaseUrl()}/crew`,
-          ).then((ok) => {
+          (async () => {
+            if (await isSmsOptedOut(supabase, phone)) return;
+            const ok = await sendJobAlertSms(
+              phone,
+              formatJobAlertSms(job, locale),
+            );
             if (ok) notifiedMemberIds.add(member.id);
-          }),
+          })(),
         );
       }
 

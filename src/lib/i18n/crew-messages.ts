@@ -87,7 +87,16 @@ export type CrewMessageKey =
   | "acceptAll"
   | "acceptAllCount"
   | "acceptingAll"
-  | "jobsAcceptedAll";
+  | "jobsAcceptedAll"
+  | "smsJobAlert"
+  | "smsReplyHint"
+  | "smsAcceptedConfirm"
+  | "smsDeclinedConfirm"
+  | "smsNoPendingJob"
+  | "smsUnknownReply"
+  | "smsHelp"
+  | "smsStopConfirm"
+  | "smsStartConfirm";
 
 const en: Record<CrewMessageKey, string> = {
   mySchedule: "My schedule",
@@ -184,6 +193,19 @@ const en: Record<CrewMessageKey, string> = {
   acceptAllCount: "Accept all ({n})",
   acceptingAll: "Accepting…",
   jobsAcceptedAll: "Accepted {n} jobs",
+  smsJobAlert: "Crew Dispatch: {title}\n{body}",
+  smsReplyHint: "Reply YES to accept or NO to decline.",
+  smsAcceptedConfirm: "Got it — job accepted. ({where})",
+  smsDeclinedConfirm: "Got it — job declined. ({where})",
+  smsNoPendingJob: "No pending job to respond to. Open your schedule: {url}",
+  smsUnknownReply:
+    "Reply YES to accept or NO to decline your latest job. HELP for help, STOP to opt out.",
+  smsHelp:
+    "Crew Dispatch: job alerts & sign-in links. Reply YES/NO to accept/decline. STOP to opt out. Help: {url}",
+  smsStopConfirm:
+    "You are opted out of Crew Dispatch texts. Reply START to opt back in.",
+  smsStartConfirm:
+    "You are opted back in to Crew Dispatch texts for job alerts and sign-in.",
 };
 
 const es: Record<CrewMessageKey, string> = {
@@ -283,6 +305,20 @@ const es: Record<CrewMessageKey, string> = {
   acceptAllCount: "Aceptar todos ({n})",
   acceptingAll: "Aceptando…",
   jobsAcceptedAll: "Se aceptaron {n} trabajos",
+  smsJobAlert: "Crew Dispatch: {title}\n{body}",
+  smsReplyHint: "Responde SI para aceptar o NO para rechazar.",
+  smsAcceptedConfirm: "Listo — trabajo aceptado. ({where})",
+  smsDeclinedConfirm: "Listo — trabajo rechazado. ({where})",
+  smsNoPendingJob:
+    "No hay un trabajo pendiente. Abre tu horario: {url}",
+  smsUnknownReply:
+    "Responde SI para aceptar o NO para rechazar tu último trabajo. HELP para ayuda, STOP para cancelar.",
+  smsHelp:
+    "Crew Dispatch: alertas de trabajo y enlaces de acceso. Responde SI/NO para aceptar/rechazar. STOP para cancelar. Ayuda: {url}",
+  smsStopConfirm:
+    "Cancelaste los textos de Crew Dispatch. Responde START para volver a recibirlos.",
+  smsStartConfirm:
+    "Volviste a activar los textos de Crew Dispatch para alertas y acceso.",
 };
 
 export const CREW_MESSAGES: Record<CrewLocale, Record<CrewMessageKey, string>> =
