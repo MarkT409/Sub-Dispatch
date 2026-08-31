@@ -21,7 +21,6 @@ import {
 import { notifyNewBoardJobs } from "@/lib/push/send";
 import {
   boardCellKey,
-  duplicateJobIdsToCancel,
   preferBoardJob,
 } from "@/lib/board-dedupe";
 import { isUncoloredBoardCrew } from "@/lib/board-typing";
@@ -188,17 +187,8 @@ function pickCurrentWeekSheets(sheets: { title: string }[]) {
     if (sheetMonday === monday) titles.add(sheet.title);
   }
 
-  if (titles.size === 0) {
-    const dated = sheets
-      .filter(
-        (s) =>
-          isJobBoardSheet(s.title) &&
-          !/^weekly board$/i.test(s.title.trim()),
-      )
-      .map((s) => s.title);
-    if (dated.length) titles.add(dated[dated.length - 1]);
-  }
-
+  // Never fall back to a different week tab — that re-synced old weeks and
+  // wiped non-Lantana jobs via cancel/dedupe. Prefer empty over wrong week.
   return [...titles];
 }
 
@@ -442,58 +432,9 @@ export async function syncJobBoard(
     }
   }
 
-  let cancelled = 0;
-  // Collapse address twins (e.g. manual seed + Sheets) for weeks we just touched.
-  // Do NOT cancel jobs merely missing from a sparse parse — that wiped crews before.
-  const weeksToCollapse =
-    mode === "all"
-      ? [...new Set(allJobs.map((j) => j.sheets_week))]
-      : sheetsSynced;
-  for (const week of weeksToCollapse) {
-    if (!week) continue;
-    const { data: remaining, error: remainError } = await supabase
-      .from("jobs")
-      .select(
-        "id, site_address, title, assigned_to, work_kind, work_date, crew_lead, sheets_row_key, status, source",
-      )
-      .eq("sheets_week", week)
-      .neq("status", "cancelled");
-    // Also include manual jobs in the same date range (seed twins have no sheets_week)
-    const weekJobs = allJobs.filter((j) => j.sheets_week === week);
-    const dates = [...new Set(weekJobs.map((j) => j.work_date).filter(Boolean))];
-    let manuals: typeof remaining = [];
-    if (dates.length) {
-      const { data: manualRows, error: manualErr } = await supabase
-        .from("jobs")
-        .select(
-          "id, site_address, title, assigned_to, work_kind, work_date, crew_lead, sheets_row_key, status, source",
-        )
-        .eq("source", "manual")
-        .in("work_date", dates)
-        .neq("status", "cancelled");
-      if (manualErr) throw new Error(manualErr.message);
-      manuals = manualRows ?? [];
-    }
-    if (remainError) throw new Error(remainError.message);
-
-    const pool = [...(remaining ?? []), ...manuals];
-    const seen = new Set<string>();
-    const unique = pool.filter((row) => {
-      if (seen.has(row.id)) return false;
-      seen.add(row.id);
-      return true;
-    });
-
-    const twinIds = duplicateJobIdsToCancel(unique);
-    if (twinIds.length) {
-      const { error: twinError } = await supabase
-        .from("jobs")
-        .update({ status: "cancelled" })
-        .in("id", twinIds);
-      if (twinError) throw new Error(twinError.message);
-      cancelled += twinIds.length;
-    }
-  }
+  // Twin-cancel disabled permanently — it wiped most of the board on sync
+  // (often leaving only Lantana assignees). UI still dedupes for display.
+  const cancelled = 0;
 
   let notified = 0;
   if (insertedJobs.length) {
