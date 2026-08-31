@@ -155,20 +155,28 @@ export function dedupeBoardJobs<T extends DedupeJob>(jobs: T[]): T[] {
   return out;
 }
 
-/** Ids to cancel when collapsing duplicates (everything except the winner). */
+/** Ids to cancel when collapsing duplicates (everything except the winner).
+ * Only cancel true twins:
+ * - same board cell (sheets_row_key), or
+ * - manual seed sitting on top of a google_sheets row (same crew/date/address)
+ * Never cancel two distinct Sheets cells just because the address text matches —
+ * that wiped whole supervisor rows and left mostly Lantana jobs visible.
+ */
 export function duplicateJobIdsToCancel<T extends DedupeJob & { id: string }>(
   jobs: T[],
 ): string[] {
-  const groups = new Map<string, T[]>();
-  for (const job of jobs) {
-    const key = groupKey(job);
-    const list = groups.get(key) ?? [];
-    list.push(job);
-    groups.set(key, list);
-  }
-
   const cancel: string[] = [];
-  for (const list of groups.values()) {
+
+  // 1) Same Sheets cell key → keep one
+  const byCell = new Map<string, T[]>();
+  for (const job of jobs) {
+    const cell = boardCellKey(job.sheets_row_key);
+    if (!cell) continue;
+    const list = byCell.get(cell) ?? [];
+    list.push(job);
+    byCell.set(cell, list);
+  }
+  for (const list of byCell.values()) {
     if (list.length < 2) continue;
     let winner = list[0]!;
     for (let i = 1; i < list.length; i++) {
@@ -178,5 +186,26 @@ export function duplicateJobIdsToCancel<T extends DedupeJob & { id: string }>(
       if (job.id !== winner.id) cancel.push(job.id);
     }
   }
+
+  // 2) Manual vs Sheets address twins (seed leftovers)
+  const byAddr = new Map<string, T[]>();
+  for (const job of jobs) {
+    const base = boardAddressBase(job.site_address || job.title);
+    if (!base) continue; // never group blank addresses
+    const key = boardDedupeGroupKey(job);
+    const list = byAddr.get(key) ?? [];
+    list.push(job);
+    byAddr.set(key, list);
+  }
+  for (const list of byAddr.values()) {
+    const sheets = list.filter((j) => j.source === "google_sheets");
+    const manuals = list.filter((j) => j.source === "manual");
+    if (sheets.length === 0 || manuals.length === 0) continue;
+    // Prefer sheets row; cancel manuals only
+    for (const job of manuals) {
+      if (!cancel.includes(job.id)) cancel.push(job.id);
+    }
+  }
+
   return cancel;
 }

@@ -272,9 +272,11 @@ export function BoardFilters({
       </div>
 
       {activeCount > 0 ? (
-        <p className="text-xs text-text-muted">
+        <p className="rounded-md border border-amber-500/30 bg-amber-400/10 px-2.5 py-1.5 text-xs font-medium text-amber-950 dark:text-amber-100">
           Showing {matchCount} of {jobs.length} job
           {jobs.length === 1 ? "" : "s"}
+          {filters.team ? ` · sub team: ${filters.team}` : ""}. Use{" "}
+          <span className="font-semibold">Clear</span> for the full board.
         </p>
       ) : null}
     </div>

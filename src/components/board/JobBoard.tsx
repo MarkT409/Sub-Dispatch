@@ -9,6 +9,7 @@ import { dedupeBoardJobs } from "@/lib/board-dedupe";
 import { parseBoardTyping, boardKindColor, formatBoardCellDisplay, isUncoloredBoardCrew } from "@/lib/board-typing";
 import { addDaysIso, todayIsoChicago } from "@/lib/sheets/job-board-parse";
 import { JobBoardCell } from "@/components/board/JobBoardCell";
+import { SyncSheetsButton } from "@/components/admin/SyncSheetsButton";
 import {
   BoardFilters,
   EMPTY_BOARD_FILTERS,
@@ -96,6 +97,7 @@ export function JobBoard({
   const [localCrews, setLocalCrews] = useState(crews);
   const [filters, setFilters] = useState<BoardFilterState>(EMPTY_BOARD_FILTERS);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [selectedCrewLeads, setSelectedCrewLeads] = useState<string[]>([]);
   const [dispatchOpen, setDispatchOpen] = useState(false);
   const [dispatching, setDispatching] = useState(false);
   const [shakeKeys, setShakeKeys] = useState<Set<string>>(new Set());
@@ -122,6 +124,7 @@ export function JobBoard({
   useEffect(() => {
     // Changing weeks clears day selection so the wrong week can't stay checked
     setSelectedDays([]);
+    setSelectedCrewLeads([]);
     setDispatchOpen(false);
     setFilters(EMPTY_BOARD_FILTERS);
   }, [days]);
@@ -148,15 +151,9 @@ export function JobBoard({
     );
   }, [enableFilters, filtersActive, localJobs, filters, filterTeams]);
 
-  const displayedCrews = useMemo(() => {
-    if (!enableFilters || !filtersActive) return localCrews;
-    const names = new Set(
-      filteredJobs
-        .map((j) => j.crew_lead?.trim().toLowerCase())
-        .filter(Boolean) as string[],
-    );
-    return localCrews.filter((c) => names.has(c.name.trim().toLowerCase()));
-  }, [enableFilters, filtersActive, localCrews, filteredJobs]);
+  // Always show every supervisor row — filtering only hides job cells.
+  // Hiding rows made a Lantana team filter look like "the board only has Lantana."
+  const displayedCrews = localCrews;
 
   const jobsByCrewDay = useMemo(() => {
     const map = new Map<string, BoardJob[]>();
@@ -372,13 +369,20 @@ export function JobBoard({
 
   async function confirmDispatch() {
     if (!canWrite || selectedDays.length === 0) return;
+    if (selectedCrewLeads.length === 0) {
+      toast.error("Select at least one crew to dispatch.");
+      return;
+    }
 
     setDispatching(true);
     try {
       const res = await fetch("/api/board/dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ days: selectedDays }),
+        body: JSON.stringify({
+          days: selectedDays,
+          crewLeads: selectedCrewLeads,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -398,12 +402,38 @@ export function JobBoard({
       }
       setDispatchOpen(false);
       setSelectedDays([]);
+      setSelectedCrewLeads([]);
       router.refresh();
     } catch {
       toast.error("Dispatch failed");
     } finally {
       setDispatching(false);
     }
+  }
+
+  function openDispatchDialog() {
+    if (selectedDays.length === 0) return;
+    const withJobs = localCrews
+      .filter((crew) =>
+        localJobs.some(
+          (j) =>
+            j.work_date &&
+            selectedDays.includes(j.work_date) &&
+            matchCrewName(j.crew_lead, crew.name) &&
+            Boolean(j.assigned_to?.trim()),
+        ),
+      )
+      .map((c) => c.name);
+    setSelectedCrewLeads(
+      withJobs.length > 0 ? withJobs : localCrews.map((c) => c.name),
+    );
+    setDispatchOpen(true);
+  }
+
+  function toggleDispatchCrew(name: string) {
+    setSelectedCrewLeads((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+    );
   }
 
   function toggleDay(day: string) {
@@ -419,9 +449,13 @@ export function JobBoard({
   const dispatchJobCount = useMemo(
     () =>
       localJobs.filter(
-        (j) => j.work_date && selectedDays.includes(j.work_date),
+        (j) =>
+          j.work_date &&
+          selectedDays.includes(j.work_date) &&
+          selectedCrewLeads.some((name) => matchCrewName(j.crew_lead, name)) &&
+          Boolean(j.assigned_to?.trim()),
       ).length,
-    [localJobs, selectedDays],
+    [localJobs, selectedDays, selectedCrewLeads],
   );
 
   async function commitCell(
@@ -760,11 +794,12 @@ export function JobBoard({
             <button
               type="button"
               disabled={selectedDays.length === 0}
-              onClick={() => setDispatchOpen(true)}
+              onClick={() => openDispatchDialog()}
               className="min-h-9 rounded-lg bg-lime-400 px-3 py-1.5 text-sm font-semibold text-black hover:bg-lime-300 disabled:opacity-60"
             >
               Dispatch Crews
             </button>
+            <SyncSheetsButton source="all" weeks="current" label="Sync board" />
           </div>
         )}
         <button
@@ -789,6 +824,27 @@ export function JobBoard({
           filters={filters}
           onChange={setFilters}
         />
+      ) : null}
+      {enableFilters && filtersActive ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/40 bg-amber-400/15 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+          <span>
+            Board is filtered
+            {filters.team ? (
+              <>
+                {" "}
+                to <strong>{filters.team}</strong>
+              </>
+            ) : null}
+            . Clear filters to see every supervisor’s jobs.
+          </span>
+          <button
+            type="button"
+            onClick={() => setFilters(EMPTY_BOARD_FILTERS)}
+            className="rounded-md bg-amber-400 px-2.5 py-1 text-xs font-bold text-amber-950 hover:bg-amber-300"
+          >
+            Clear filters
+          </button>
+        </div>
       ) : null}
       {!canWrite ? (
         <>
@@ -842,7 +898,7 @@ export function JobBoard({
           }}
         >
           <div
-            className="w-full max-w-md rounded-xl border border-border-default bg-bg-raised p-5 shadow-xl"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border-default bg-bg-raised p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <h3
@@ -852,19 +908,74 @@ export function JobBoard({
               Confirm dispatch
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              Are you sure you want to notify crews for{" "}
+              Notify crews for{" "}
               <span className="font-semibold text-text-primary">
                 {dispatchDayPhrase}
               </span>
-              ?
+              .
             </p>
             <p className="mt-2 text-sm text-text-muted">
               This will send{" "}
               <span className="font-medium text-text-secondary">
                 {dispatchJobCount} job{dispatchJobCount === 1 ? "" : "s"}
               </span>{" "}
-              to the matching sub crews.
+              from the selected supervisors.
             </p>
+
+            <div className="mt-4">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
+                  Supervisors
+                </p>
+                <div className="flex gap-2 text-xs">
+                  <button
+                    type="button"
+                    disabled={dispatching}
+                    className="text-amber-700 hover:underline disabled:opacity-60 dark:text-amber-400"
+                    onClick={() =>
+                      setSelectedCrewLeads(localCrews.map((c) => c.name))
+                    }
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    disabled={dispatching}
+                    className="text-text-muted hover:underline disabled:opacity-60"
+                    onClick={() => setSelectedCrewLeads([])}
+                  >
+                    None
+                  </button>
+                </div>
+              </div>
+              <div className="grid max-h-56 grid-cols-2 gap-1.5 overflow-y-auto rounded-lg border border-border-default bg-bg-base p-2 sm:grid-cols-3">
+                {localCrews.map((crew) => {
+                  const on = selectedCrewLeads.includes(crew.name);
+                  return (
+                    <label
+                      key={crew.id}
+                      className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
+                        on
+                          ? "bg-lime-400/20 text-text-primary"
+                          : "text-text-muted hover:bg-bg-raised"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="accent-lime-500"
+                        checked={on}
+                        disabled={dispatching}
+                        onChange={() => toggleDispatchCrew(crew.name)}
+                      />
+                      <span className="truncate font-semibold uppercase tracking-wide">
+                        {crew.name}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
@@ -876,7 +987,7 @@ export function JobBoard({
               </button>
               <button
                 type="button"
-                disabled={dispatching}
+                disabled={dispatching || selectedCrewLeads.length === 0}
                 onClick={() => void confirmDispatch()}
                 className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-semibold text-lime-950 hover:bg-lime-300 disabled:opacity-60"
               >
