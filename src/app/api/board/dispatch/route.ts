@@ -10,8 +10,8 @@ export async function POST(request: NextRequest) {
   const days = Array.isArray(body?.days)
     ? body.days.map((d: unknown) => String(d))
     : [];
-  const crewLeads = Array.isArray(body?.crewLeads)
-    ? body.crewLeads.map((c: unknown) => String(c).trim()).filter(Boolean)
+  const assignees = Array.isArray(body?.assignees)
+    ? body.assignees.map((c: unknown) => String(c).trim()).filter(Boolean)
     : undefined;
 
   if (days.length === 0) {
@@ -21,15 +21,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (crewLeads && crewLeads.length === 0) {
+  if (assignees && assignees.length === 0) {
     return NextResponse.json(
-      { error: "Select at least one crew to dispatch." },
+      { error: "Select at least one sub to dispatch." },
       { status: 400 },
     );
   }
 
   try {
-    const result = await dispatchBoardJobs(auth.supabase, { days, crewLeads });
+    const result = await dispatchBoardJobs(auth.supabase, { days, assignees });
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Dispatch failed";

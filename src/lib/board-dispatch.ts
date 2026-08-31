@@ -59,14 +59,14 @@ async function ensureCrewMember(
 }
 
 /**
- * Dispatch board jobs for selected work dates (and optional supervisors):
+ * Dispatch board jobs for selected work dates (and optional sub assignees):
  * assigned_to → match that person on the Crew-tab team (Leo → Leo only).
  * If the assignee is just the team name, notify that team's leads.
  * If no leads / no team, fall back to the assignee string.
  */
 export async function dispatchBoardJobs(
   supabase: SupabaseClient,
-  options: { days: string[]; crewLeads?: string[] },
+  options: { days: string[]; assignees?: string[] },
 ): Promise<DispatchResult> {
   const days = [...new Set(options.days.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)))];
   if (days.length === 0) {
@@ -80,11 +80,11 @@ export async function dispatchBoardJobs(
     };
   }
 
-  const crewLeadFilter = (options.crewLeads ?? [])
-    .map((n) => n.trim().toLowerCase())
+  const assigneeFilter = (options.assignees ?? [])
+    .map((n) => normalizeName(n))
     .filter(Boolean);
-  const crewLeadSet =
-    crewLeadFilter.length > 0 ? new Set(crewLeadFilter) : null;
+  const assigneeSet =
+    assigneeFilter.length > 0 ? new Set(assigneeFilter) : null;
 
   const { data: jobs, error } = await supabase
     .from("jobs")
@@ -97,9 +97,10 @@ export async function dispatchBoardJobs(
   if (error) throw new Error(error.message);
 
   const scopedJobs = (jobs ?? []).filter((job) => {
-    if (!crewLeadSet) return true;
-    const lead = (job.crew_lead || "").trim().toLowerCase();
-    return lead.length > 0 && crewLeadSet.has(lead);
+    const assignee = (job.assigned_to || "").trim();
+    if (!assignee) return false;
+    if (!assigneeSet) return true;
+    return assigneeSet.has(normalizeName(assignee));
   });
 
   const { teams } = await fetchSubTeams(supabase);

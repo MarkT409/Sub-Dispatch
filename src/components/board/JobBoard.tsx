@@ -97,7 +97,7 @@ export function JobBoard({
   const [localCrews, setLocalCrews] = useState(crews);
   const [filters, setFilters] = useState<BoardFilterState>(EMPTY_BOARD_FILTERS);
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const [selectedCrewLeads, setSelectedCrewLeads] = useState<string[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [dispatchOpen, setDispatchOpen] = useState(false);
   const [dispatching, setDispatching] = useState(false);
   const [shakeKeys, setShakeKeys] = useState<Set<string>>(new Set());
@@ -124,7 +124,7 @@ export function JobBoard({
   useEffect(() => {
     // Changing weeks clears day selection so the wrong week can't stay checked
     setSelectedDays([]);
-    setSelectedCrewLeads([]);
+    setSelectedAssignees([]);
     setDispatchOpen(false);
     setFilters(EMPTY_BOARD_FILTERS);
   }, [days]);
@@ -369,8 +369,8 @@ export function JobBoard({
 
   async function confirmDispatch() {
     if (!canWrite || selectedDays.length === 0) return;
-    if (selectedCrewLeads.length === 0) {
-      toast.error("Select at least one crew to dispatch.");
+    if (selectedAssignees.length === 0) {
+      toast.error("Select at least one sub to dispatch.");
       return;
     }
 
@@ -381,7 +381,7 @@ export function JobBoard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           days: selectedDays,
-          crewLeads: selectedCrewLeads,
+          assignees: selectedAssignees,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -402,7 +402,7 @@ export function JobBoard({
       }
       setDispatchOpen(false);
       setSelectedDays([]);
-      setSelectedCrewLeads([]);
+      setSelectedAssignees([]);
       router.refresh();
     } catch {
       toast.error("Dispatch failed");
@@ -411,27 +411,30 @@ export function JobBoard({
     }
   }
 
+  /** Unique sub names (assigned_to) that have a job on the selected days. */
+  const dispatchableSubs = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const job of localJobs) {
+      if (!job.work_date || !selectedDays.includes(job.work_date)) continue;
+      const raw = job.assigned_to?.trim();
+      if (!raw) continue;
+      const key = raw.toLowerCase().replace(/\s+/g, " ");
+      if (!names.has(key)) names.set(key, raw);
+    }
+    return [...names.values()].sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" }),
+    );
+  }, [localJobs, selectedDays]);
+
   function openDispatchDialog() {
     if (selectedDays.length === 0) return;
-    const withJobs = localCrews
-      .filter((crew) =>
-        localJobs.some(
-          (j) =>
-            j.work_date &&
-            selectedDays.includes(j.work_date) &&
-            matchCrewName(j.crew_lead, crew.name) &&
-            Boolean(j.assigned_to?.trim()),
-        ),
-      )
-      .map((c) => c.name);
-    setSelectedCrewLeads(
-      withJobs.length > 0 ? withJobs : localCrews.map((c) => c.name),
-    );
+    // Default: all subs who have a job that day are checked
+    setSelectedAssignees(dispatchableSubs);
     setDispatchOpen(true);
   }
 
-  function toggleDispatchCrew(name: string) {
-    setSelectedCrewLeads((prev) =>
+  function toggleDispatchSub(name: string) {
+    setSelectedAssignees((prev) =>
       prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
     );
   }
@@ -446,17 +449,17 @@ export function JobBoard({
     () => formatDispatchDayList(selectedDays),
     [selectedDays],
   );
-  const dispatchJobCount = useMemo(
-    () =>
-      localJobs.filter(
-        (j) =>
-          j.work_date &&
-          selectedDays.includes(j.work_date) &&
-          selectedCrewLeads.some((name) => matchCrewName(j.crew_lead, name)) &&
-          Boolean(j.assigned_to?.trim()),
-      ).length,
-    [localJobs, selectedDays, selectedCrewLeads],
-  );
+  const dispatchJobCount = useMemo(() => {
+    const selected = new Set(
+      selectedAssignees.map((n) => n.toLowerCase().replace(/\s+/g, " ")),
+    );
+    return localJobs.filter((j) => {
+      if (!j.work_date || !selectedDays.includes(j.work_date)) return false;
+      const a = j.assigned_to?.trim();
+      if (!a) return false;
+      return selected.has(a.toLowerCase().replace(/\s+/g, " "));
+    }).length;
+  }, [localJobs, selectedDays, selectedAssignees]);
 
   async function commitCell(
     raw: string,
@@ -919,22 +922,20 @@ export function JobBoard({
               <span className="font-medium text-text-secondary">
                 {dispatchJobCount} job{dispatchJobCount === 1 ? "" : "s"}
               </span>{" "}
-              from the selected supervisors.
+              to the selected subs.
             </p>
 
             <div className="mt-4">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                  Supervisors
+                  Subs with jobs
                 </p>
                 <div className="flex gap-2 text-xs">
                   <button
                     type="button"
-                    disabled={dispatching}
+                    disabled={dispatching || dispatchableSubs.length === 0}
                     className="text-amber-700 hover:underline disabled:opacity-60 dark:text-amber-400"
-                    onClick={() =>
-                      setSelectedCrewLeads(localCrews.map((c) => c.name))
-                    }
+                    onClick={() => setSelectedAssignees(dispatchableSubs)}
                   >
                     All
                   </button>
@@ -942,38 +943,43 @@ export function JobBoard({
                     type="button"
                     disabled={dispatching}
                     className="text-text-muted hover:underline disabled:opacity-60"
-                    onClick={() => setSelectedCrewLeads([])}
+                    onClick={() => setSelectedAssignees([])}
                   >
                     None
                   </button>
                 </div>
               </div>
-              <div className="grid max-h-56 grid-cols-2 gap-1.5 overflow-y-auto rounded-lg border border-border-default bg-bg-base p-2 sm:grid-cols-3">
-                {localCrews.map((crew) => {
-                  const on = selectedCrewLeads.includes(crew.name);
-                  return (
-                    <label
-                      key={crew.id}
-                      className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
-                        on
-                          ? "bg-lime-400/20 text-text-primary"
-                          : "text-text-muted hover:bg-bg-raised"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        className="accent-lime-500"
-                        checked={on}
-                        disabled={dispatching}
-                        onChange={() => toggleDispatchCrew(crew.name)}
-                      />
-                      <span className="truncate font-semibold uppercase tracking-wide">
-                        {crew.name}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
+              {dispatchableSubs.length === 0 ? (
+                <p className="rounded-lg border border-border-default bg-bg-base px-3 py-4 text-sm text-text-muted">
+                  No assigned subs on the selected day
+                  {selectedDays.length === 1 ? "" : "s"}.
+                </p>
+              ) : (
+                <div className="grid max-h-56 grid-cols-2 gap-1.5 overflow-y-auto rounded-lg border border-border-default bg-bg-base p-2 sm:grid-cols-3">
+                  {dispatchableSubs.map((name) => {
+                    const on = selectedAssignees.includes(name);
+                    return (
+                      <label
+                        key={name}
+                        className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm ${
+                          on
+                            ? "bg-lime-400/20 text-text-primary"
+                            : "text-text-muted hover:bg-bg-raised"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="accent-lime-500"
+                          checked={on}
+                          disabled={dispatching}
+                          onChange={() => toggleDispatchSub(name)}
+                        />
+                        <span className="truncate font-medium">{name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="mt-5 flex flex-wrap justify-end gap-2">
@@ -987,7 +993,11 @@ export function JobBoard({
               </button>
               <button
                 type="button"
-                disabled={dispatching || selectedCrewLeads.length === 0}
+                disabled={
+                  dispatching ||
+                  selectedAssignees.length === 0 ||
+                  dispatchableSubs.length === 0
+                }
                 onClick={() => void confirmDispatch()}
                 className="rounded-lg bg-lime-400 px-4 py-2 text-sm font-semibold text-lime-950 hover:bg-lime-300 disabled:opacity-60"
               >
