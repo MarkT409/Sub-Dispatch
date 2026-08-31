@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 type AdminMessageItem = {
   id: string;
@@ -65,6 +66,7 @@ export function AdminMessagesBubble() {
   const [accepted, setAccepted] = useState<AdminMessageItem[]>([]);
   const [declined, setDeclined] = useState<AdminMessageItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -101,6 +103,39 @@ export function AdminMessagesBubble() {
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  async function dismiss(payload: {
+    ids?: string[];
+    all?: boolean;
+    olderThanDays?: number;
+  }) {
+    const key =
+      payload.ids?.join(",") ||
+      (payload.all ? "all" : `older:${payload.olderThanDays}`);
+    setBusy(key);
+    try {
+      const res = await fetch("/api/admin/messages", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || "Could not clear notifications");
+        return;
+      }
+      toast.success(
+        data.dismissed === 1
+          ? "Notification cleared"
+          : `Cleared ${data.dismissed ?? 0} notifications`,
+      );
+      await refresh();
+    } catch {
+      toast.error("Could not clear notifications");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   const declinedCount = declined.length;
   const acceptedCount = accepted.length;
@@ -142,10 +177,38 @@ export function AdminMessagesBubble() {
 
       {open ? (
         <div className="absolute right-0 z-[60] mt-2 w-[min(100vw-1.5rem,24rem)] overflow-hidden rounded-xl border border-border-default bg-bg-raised shadow-lg">
-          <div className="border-b border-border-subtle px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2 border-b border-border-subtle px-3 py-2.5">
             <p className="font-display text-sm font-semibold text-text-primary">
               Crew responses
             </p>
+            {total > 0 ? (
+              <div className="flex shrink-0 items-center gap-2 text-[11px]">
+                <button
+                  type="button"
+                  disabled={Boolean(busy)}
+                  onClick={() => void dismiss({ olderThanDays: 7 })}
+                  className="text-text-muted hover:text-text-primary disabled:opacity-60"
+                >
+                  Clear 7d+
+                </button>
+                <button
+                  type="button"
+                  disabled={Boolean(busy)}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "Clear all accepted and declined notifications from this list?",
+                      )
+                    ) {
+                      void dismiss({ all: true });
+                    }
+                  }}
+                  className="font-medium text-red-600 hover:text-red-500 disabled:opacity-60"
+                >
+                  Clear all
+                </button>
+              </div>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-2 border-b border-border-subtle">
@@ -200,15 +263,26 @@ export function AdminMessagesBubble() {
                         {formatDate(item.work_date)}
                         {kind ? ` · ${kind}` : ""}
                       </p>
-                      <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                          item.status === "declined"
-                            ? "bg-[#D2042D]/15 text-[#D2042D]"
-                            : "bg-lime-400/20 text-lime-700 dark:text-lime-300"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                            item.status === "declined"
+                              ? "bg-[#D2042D]/15 text-[#D2042D]"
+                              : "bg-lime-400/20 text-lime-700 dark:text-lime-300"
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                        <button
+                          type="button"
+                          title="Remove from list"
+                          disabled={Boolean(busy)}
+                          onClick={() => void dismiss({ ids: [item.id] })}
+                          className="rounded px-1.5 py-0.5 text-[11px] text-text-muted hover:bg-bg-base hover:text-red-600 disabled:opacity-60"
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                     <p className="mt-0.5 font-medium leading-snug text-text-primary">
                       {item.site_address || item.title}
